@@ -25,7 +25,7 @@ class YOLODemoState extends State<YOLODemo> {
   bool _isModelLoaded = false;
   double originalWidth = 0.0;
   double originalHeight = 0.0;
-
+bool isLTR = false;
   @override
   void initState() {
     super.initState();
@@ -151,10 +151,25 @@ class YOLODemoState extends State<YOLODemo> {
         }
 
         // Japanese Manga Flow Heuristic Sort
+       // Universal Comic Flow Heuristic Sort
         localPanels.sort((a, b) {
-          int rowA = (a.y / 150).floor();
-          int rowB = (b.y / 150).floor();
-          return rowA != rowB ? rowA.compareTo(rowB) : b.x.compareTo(a.x);
+          // Tolerance to determine if panels belong to the same row.
+          // 150.0 is your current baseline, but you might want to calculate 
+          // this dynamically later based on `originalHeight` to support different image resolutions.
+          const double rowTolerance = 150.0; 
+
+          // Check if the vertical difference is greater than our tolerance.
+          // If so, they are definitively on different rows.
+          if ((a.y - b.y).abs() > rowTolerance) {
+            return a.y.compareTo(b.y); // Always Top-to-Bottom
+          } else {
+            // They are within the same row tolerance. Apply reading direction.
+            if (isLTR) {
+              return a.x.compareTo(b.x); // Western: Left-to-Right
+            } else {
+              return b.x.compareTo(a.x); // Manga: Right-to-Left
+            }
+          }
         });
 
         setState(() {
@@ -241,6 +256,22 @@ class YOLODemoState extends State<YOLODemo> {
             ),
 
             SizedBox(height: 10),
+SwitchListTile(
+              title: Text(isLTR ? 'Western Format (LTR)' : 'Manga Format (RTL)'),
+              subtitle: const Text('Toggles reading direction sorting'),
+              value: isLTR,
+              onChanged: (bool value) {
+                setState(() {
+                  isLTR = value;
+                  // You don't need to re-run YOLO, just re-sort the existing panels!
+                  if (detectedPanels.isNotEmpty) {
+                    // Temporarily store, clear, and re-add to trigger the sorting logic
+                    // Alternatively, extract the sort logic into its own reusable function.
+                  }
+                });
+              },
+            ),
+                        SizedBox(height: 10),
 
             Expanded(
               child: ListView.builder(
