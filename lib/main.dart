@@ -1,14 +1,41 @@
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:hive_ce_flutter/adapters.dart';
 import 'package:omiku/models/manga_panel.dart';
 import 'package:omiku/models/panel_debug_painter.dart';
+import 'package:omiku/providers/manga_store.dart';
 import 'package:omiku/widgets/manga_reader.dart';
+import 'package:provider/provider.dart';
+import 'package:telegram_ios_ui_kit/telegram_ios_ui_kit.dart';
 import 'package:ultralytics_yolo/ultralytics_yolo.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 
-void main() => runApp(const MaterialApp(home: YOLODemo()));
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Hive
+  await Hive.initFlutter();
+
+  // Open a storage box specifically for app configurations/state
+  await Hive.openBox('manga_store_box');
+  final telegramTheme = TelegramThemeData.dark();
+
+  runApp(
+    ChangeNotifierProvider(
+      create: (context) => MangaStore(),
+      child: TelegramTheme(
+        data: telegramTheme,
+        child: MaterialApp(
+          theme: telegramTheme.toThemeData(),
+          debugShowCheckedModeBanner: false,
+              home: SplashScreen(),
+        ),
+      ),
+    ),
+  );
+}
 
 class YOLODemo extends StatefulWidget {
   const YOLODemo({super.key});
@@ -25,7 +52,7 @@ class YOLODemoState extends State<YOLODemo> {
   bool _isModelLoaded = false;
   double originalWidth = 0.0;
   double originalHeight = 0.0;
-bool isLTR = false;
+  bool isLTR = false;
   @override
   void initState() {
     super.initState();
@@ -68,8 +95,8 @@ bool isLTR = false;
       try {
         final Uint8List imageBytes = await selectedImage!.readAsBytes();
         final decodedImage = await decodeImageFromList(imageBytes);
-         originalWidth = decodedImage.width.toDouble();
-         originalHeight = decodedImage.height.toDouble();
+        originalWidth = decodedImage.width.toDouble();
+        originalHeight = decodedImage.height.toDouble();
         final Map<String, dynamic> response = await yolo!.predict(
           imageBytes,
           confidenceThreshold: 0.70,
@@ -130,8 +157,8 @@ bool isLTR = false;
             final double y2 = (detectMap['y2'] ?? detectMap['box']?[3] ?? 0.0)
                 .toDouble();
 
-            boxWidth = (x2 - x1/1.5).abs();
-            boxHeight = (y2 - y1/1.5).abs();
+            boxWidth = (x2 - x1 / 1.5).abs();
+            boxHeight = (y2 - y1 / 1.5).abs();
             centerX = x1 + ((x2 - x1).abs() / 2);
             centerY = y1 + ((y2 - y1).abs() / 2);
           }
@@ -151,12 +178,12 @@ bool isLTR = false;
         }
 
         // Japanese Manga Flow Heuristic Sort
-       // Universal Comic Flow Heuristic Sort
+        // Universal Comic Flow Heuristic Sort
         localPanels.sort((a, b) {
           // Tolerance to determine if panels belong to the same row.
-          // 150.0 is your current baseline, but you might want to calculate 
+          // 150.0 is your current baseline, but you might want to calculate
           // this dynamically later based on `originalHeight` to support different image resolutions.
-          const double rowTolerance = 150.0; 
+          const double rowTolerance = 150.0;
 
           // Check if the vertical difference is greater than our tolerance.
           // If so, they are definitively on different rows.
@@ -256,8 +283,10 @@ bool isLTR = false;
             ),
 
             SizedBox(height: 10),
-SwitchListTile(
-              title: Text(isLTR ? 'Western Format (LTR)' : 'Manga Format (RTL)'),
+            SwitchListTile(
+              title: Text(
+                isLTR ? 'Western Format (LTR)' : 'Manga Format (RTL)',
+              ),
               subtitle: const Text('Toggles reading direction sorting'),
               value: isLTR,
               onChanged: (bool value) {
@@ -271,7 +300,7 @@ SwitchListTile(
                 });
               },
             ),
-                        SizedBox(height: 10),
+            SizedBox(height: 10),
 
             Expanded(
               child: ListView.builder(

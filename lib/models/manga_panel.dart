@@ -77,4 +77,15 @@ class MangaPanel {
       scale: (json['scale'] as num?)?.toDouble() ?? 1.0,
     );
   }
+   // Added toJson method for MangaPanel
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'x': x,
+      'y': y,
+      'width': width,
+      'height': height,
+      'scale': scale,
+    };
+  }
 }
