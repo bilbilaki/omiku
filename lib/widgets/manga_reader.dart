@@ -1,22 +1,23 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:omiku/models/manga_panel.dart';
-import 'dart:io';
 
 class MangaReaderScreen extends StatefulWidget {
   final List<MangaPanel> detectedPanels;
   final File mangaImage;
 
   const MangaReaderScreen({
-    Key? key,
+    super.key,
     required this.detectedPanels,
     required this.mangaImage,
-  }) : super(key: key);
+  });
 
   @override
-  _MangaReaderScreenState createState() => _MangaReaderScreenState();
+  MangaReaderScreenState createState() => MangaReaderScreenState();
 }
 
-class _MangaReaderScreenState extends State<MangaReaderScreen>
+class MangaReaderScreenState extends State<MangaReaderScreen>
     with SingleTickerProviderStateMixin {
   final TransformationController _transformationController =
       TransformationController();
@@ -24,8 +25,8 @@ class _MangaReaderScreenState extends State<MangaReaderScreen>
   Animation<Matrix4>? _cameraAnimation;
 
   int _currentStep = 0;
+  bool _initialNavigationPending = false;
 
-  // Real-time tracking values for the cockpit display
   double _currentScale = 1.0;
   double _currentX = 0.0;
   double _currentY = 0.0;
@@ -34,16 +35,21 @@ class _MangaReaderScreenState extends State<MangaReaderScreen>
   @override
   void initState() {
     super.initState();
+    _initialNavigationPending = widget.detectedPanels.isNotEmpty;
 
-    // Read the true resolution of the file
     widget.mangaImage.readAsBytes().then((bytes) {
       decodeImageFromList(bytes).then((decoded) {
+        if (!mounted) {
+          return;
+        }
+
         setState(() {
           _rawImageSize = Size(
             decoded.width.toDouble(),
             decoded.height.toDouble(),
           );
         });
+        _tryInitialNavigation();
       });
     });
 
@@ -57,7 +63,6 @@ class _MangaReaderScreenState extends State<MangaReaderScreen>
           }
         });
 
-    // Track user pan/zoom movements in real-time
     _transformationController.addListener(() {
       final Matrix4 matrix = _transformationController.value;
       setState(() {
@@ -68,28 +73,51 @@ class _MangaReaderScreenState extends State<MangaReaderScreen>
     });
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (widget.detectedPanels.isNotEmpty) {
-        Future.delayed(const Duration(milliseconds: 300), () {
-          _navigateToPanel(widget.detectedPanels[_currentStep]);
-        });
+      _tryInitialNavigation();
+    });
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    _transformationController.dispose();
+    super.dispose();
+  }
+
+  void _tryInitialNavigation() {
+    if (!mounted ||
+        !_initialNavigationPending ||
+        widget.detectedPanels.isEmpty ||
+        _rawImageSize == Size.zero) {
+      return;
+    }
+
+    _initialNavigationPending = false;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || widget.detectedPanels.isEmpty) {
+        return;
       }
+      _navigateToPanel(widget.detectedPanels[_currentStep]);
     });
   }
 
   void _navigateToPanel(MangaPanel panel) {
-    if (!mounted) return;
+    if (!mounted || _rawImageSize == Size.zero) return;
 
-    final double screenWidth = MediaQuery.of(context).size.width;
-    final double screenHeight = MediaQuery.of(context).size.height;
+    final Size viewportSize = MediaQuery.sizeOf(context);
+    final double targetScale = panel.targetScaleForViewport(
+      viewportSize,
+      paddingFraction: panel.isHorizontal ? 0.10 : 0.14,
+    );
 
-    // Pivot centering math matrix targeting coordinates cleanly
-    final double targetX = (screenWidth*0.9) - (panel.x * panel.scale);
-    final double targetY = (screenHeight/1.4) - (panel.y * panel.scale);
+    final double targetX = (viewportSize.width / 2) - (panel.x * targetScale);
+    final double targetY = (viewportSize.height / 2) - (panel.y * targetScale);
 
-    final targetMatrix = Matrix4.identity()
-      ..translate(targetX, targetY)
-      ..scale(panel.scale);
+    final targetMatrix = Matrix4.diagonal3Values(targetScale, targetScale, 1.0)
+      ..setTranslationRaw(targetX, targetY, 0.0);
 
+    _animationController.stop();
     _cameraAnimation =
         Matrix4Tween(
           begin: _transformationController.value,
@@ -115,62 +143,58 @@ class _MangaReaderScreenState extends State<MangaReaderScreen>
 
   @override
   Widget build(BuildContext context) {
-    final Size screenSize = _rawImageSize;
+    final Size viewportSize = MediaQuery.sizeOf(context);
+    final Size imageSize = _rawImageSize;
     final MangaPanel? activePanel = widget.detectedPanels.isNotEmpty
         ? widget.detectedPanels[_currentStep]
         : null;
+    final double activePanelTargetScale = activePanel == null
+        ? 0.0
+        : activePanel.targetScaleForViewport(viewportSize);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF1E1E24), // Blueprint Dark Grey
+      backgroundColor: const Color(0xFF1E1E24),
       body: Stack(
         children: [
-          // --- THE INFINITE CANVAS ---
           InteractiveViewer(
             transformationController: _transformationController,
             boundaryMargin: const EdgeInsets.all(double.infinity),
-            minScale:
-                0.05, // Allow zooming way out to see the whole blueprint layout
+            minScale: 0.05,
             maxScale: 6.0,
-            child: OverflowBox(
-              minWidth: 0,
-              maxWidth: double.infinity,
-              minHeight: 0,
-              maxHeight: double.infinity,
-              child: Stack(
-                alignment: Alignment.topLeft,
-                children: [
-                  // The actual manga image constrained to screen width
-                  Container(
-                    width: screenSize.width,
-                    decoration: BoxDecoration(
-                      border: Border.all(
-                        color: Colors.cyan,
-                        width: 3,
-                      ), // Visual marker for image boundaries
-                    ),
-                    child: Image.file(widget.mangaImage, fit: BoxFit.cover),
-                  ),
-
-                  // Dynamic Overlay Debug Painter drawn on top of the image container space
-                  Positioned.fill(
-                    child: IgnorePointer(
-                      child: CustomPaint(
-                        painter: InternalDebugPainter(
-                          widget.detectedPanels,
-                          screenSize.width,
-                          _currentStep,
+            constrained: false, // <--- THE MAGIC FIX
+            child: imageSize == Size.zero
+                ? const SizedBox.expand()
+                : SizedBox(
+                    width: imageSize.width,
+                    height: imageSize.height,
+                    child: Stack(
+                      alignment: Alignment.topLeft,
+                      children: [
+                        Positioned.fill(
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.cyan, width: 3),
+                            ),
+                            child: Image.file(
+                              widget.mangaImage,
+                              fit: BoxFit.fill,
+                            ),
+                          ),
                         ),
-                      ),
+                        Positioned.fill(
+                          child: IgnorePointer(
+                            child: CustomPaint(
+                              painter: InternalDebugPainter(
+                                widget.detectedPanels,
+                                _currentStep,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ],
-              ),
-            ),
           ),
-
-          // --- FIXED SCREEN CENTER CROSSHAIR ---
-          // This crosshair shows exactly where the middle of your phone screen is.
-          // The targeted panel's center should land exactly inside this crosshair.
           IgnorePointer(
             child: Center(
               child: Container(
@@ -186,8 +210,6 @@ class _MangaReaderScreenState extends State<MangaReaderScreen>
               ),
             ),
           ),
-
-          // --- THE COCKPIT INSTRUMENT PANEL (TOP OVERLAY) ---
           Positioned(
             top: 40,
             left: 15,
@@ -205,7 +227,7 @@ class _MangaReaderScreenState extends State<MangaReaderScreen>
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        "📊 LIVE ENGINE TELEMETRY [Panel ${_currentStep + 1}/${widget.detectedPanels.length}]",
+                        'LIVE ENGINE TELEMETRY [Panel ${_currentStep + 1}/${widget.detectedPanels.length}]',
                         style: const TextStyle(
                           color: Colors.green,
                           fontWeight: FontWeight.bold,
@@ -214,25 +236,25 @@ class _MangaReaderScreenState extends State<MangaReaderScreen>
                       ),
                       const Divider(color: Colors.grey, height: 10),
                       Text(
-                        "📱 Device Viewport Size: ${screenSize.width.toStringAsFixed(0)} x ${screenSize.height.toStringAsFixed(0)}",
+                        'Device Viewport Size: ${viewportSize.width.toStringAsFixed(0)} x ${viewportSize.height.toStringAsFixed(0)}',
                         style: _debugStyle,
                       ),
                       Text(
-                        "🖼️ File Raw Resolution: ${_rawImageSize.width.toStringAsFixed(0)} x ${_rawImageSize.height.toStringAsFixed(0)}",
+                        'File Raw Resolution: ${_rawImageSize.width.toStringAsFixed(0)} x ${_rawImageSize.height.toStringAsFixed(0)}',
                         style: _debugStyle,
                       ),
                       Text(
-                        "🔎 Viewport Scale: ${_currentScale.toStringAsFixed(2)}x (Targeting: ${activePanel?.scale ?? 0.0}x)",
+                        'Viewport Scale: ${_currentScale.toStringAsFixed(2)}x (Targeting: ${activePanelTargetScale.toStringAsFixed(2)}x)',
                         style: _debugStyle,
                       ),
                       Text(
-                        "📍 Camera Position Vector: (${_currentX.toStringAsFixed(0)}, ${_currentY.toStringAsFixed(0)})",
+                        'Camera Position Vector: (${_currentX.toStringAsFixed(0)}, ${_currentY.toStringAsFixed(0)})',
                         style: _debugStyle,
                       ),
                       if (activePanel != null) ...[
                         const Divider(color: Colors.grey, height: 10),
                         Text(
-                          "🎯 Target Panel Specs:",
+                          'Target Panel Specs:',
                           style: const TextStyle(
                             color: Colors.amber,
                             fontWeight: FontWeight.bold,
@@ -240,11 +262,15 @@ class _MangaReaderScreenState extends State<MangaReaderScreen>
                           ),
                         ),
                         Text(
-                          "   • Global Center Coordinate: (${activePanel.x.toStringAsFixed(1)}, ${activePanel.y.toStringAsFixed(1)})",
+                          '   - Global Center Coordinate: (${activePanel.x.toStringAsFixed(1)}, ${activePanel.y.toStringAsFixed(1)})',
                           style: _debugStyle,
                         ),
                         Text(
-                          "   • Scaled Box Bounding Box: ${activePanel.width.toStringAsFixed(0)} x ${activePanel.height.toStringAsFixed(0)}",
+                          '   - Bounding Box: ${activePanel.width.toStringAsFixed(0)} x ${activePanel.height.toStringAsFixed(0)}',
+                          style: _debugStyle,
+                        ),
+                        Text(
+                          '   - Orientation: ${activePanel.orientationLabel}',
                           style: _debugStyle,
                         ),
                       ],
@@ -254,8 +280,6 @@ class _MangaReaderScreenState extends State<MangaReaderScreen>
               ),
             ),
           ),
-
-          // --- CONTROL FOOTER BUTTONS ---
           Positioned(
             bottom: 30,
             left: 30,
@@ -273,7 +297,7 @@ class _MangaReaderScreenState extends State<MangaReaderScreen>
                   label: Text(
                     _currentStep == widget.detectedPanels.length - 1
                         ? 'End of Page'
-                        : 'Next Panel ⏭️',
+                        : 'Next Panel',
                   ),
                 ),
               ],
@@ -291,24 +315,22 @@ class _MangaReaderScreenState extends State<MangaReaderScreen>
   );
 }
 
-// Tailored internal painter that highlights the ACTIVE targeted panel step differently
 class InternalDebugPainter extends CustomPainter {
   final List<MangaPanel> panels;
-  final double renderWidth;
   final int activeIndex;
 
-  InternalDebugPainter(this.panels, this.renderWidth, this.activeIndex);
+  InternalDebugPainter(this.panels, this.activeIndex);
 
   @override
   void paint(Canvas canvas, Size size) {
     for (int i = 0; i < panels.length; i++) {
       final panel = panels[i];
-      final bool isActive = (i == activeIndex);
+      final bool isActive = i == activeIndex;
 
       final paint = Paint()
         ..color = isActive
-            ? Colors.amber.withOpacity(0.3)
-            : Colors.red.withOpacity(0.15)
+            ? Colors.amber.withAlpha(77)
+            : Colors.red.withAlpha(38)
         ..style = PaintingStyle.fill;
 
       final border = Paint()
@@ -316,15 +338,11 @@ class InternalDebugPainter extends CustomPainter {
         ..strokeWidth = isActive ? 3 : 1.5
         ..style = PaintingStyle.stroke;
 
-      // Box geometry calculations based directly on parsed model variables
-      final left = panel.x - (panel.width / 2);
-      final top = panel.y - (panel.height / 2);
-      final rect = Rect.fromLTWH(left, top, panel.width, panel.height);
+      final rect = panel.bounds;
 
       canvas.drawRect(rect, paint);
       canvas.drawRect(rect, border);
 
-      // Draw center cross target on the layout structure itself
       canvas.drawCircle(
         Offset(panel.x, panel.y),
         4,

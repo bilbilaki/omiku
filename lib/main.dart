@@ -1,21 +1,23 @@
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
-import 'package:omiku/models/PanelDebugPainter.dart';
 import 'package:omiku/models/manga_panel.dart';
+import 'package:omiku/models/panel_debug_painter.dart';
 import 'package:omiku/widgets/manga_reader.dart';
 import 'package:ultralytics_yolo/ultralytics_yolo.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 
-void main() => runApp(MaterialApp(home: YOLODemo()));
+void main() => runApp(const MaterialApp(home: YOLODemo()));
 
 class YOLODemo extends StatefulWidget {
+  const YOLODemo({super.key});
+
   @override
-  _YOLODemoState createState() => _YOLODemoState();
+  YOLODemoState createState() => YOLODemoState();
 }
 
-class _YOLODemoState extends State<YOLODemo> {
+class YOLODemoState extends State<YOLODemo> {
   YOLO? yolo;
   File? selectedImage;
   List<MangaPanel> detectedPanels = [];
@@ -70,7 +72,7 @@ class _YOLODemoState extends State<YOLODemo> {
          originalHeight = decodedImage.height.toDouble();
         final Map<String, dynamic> response = await yolo!.predict(
           imageBytes,
-          confidenceThreshold: 0.45,
+          confidenceThreshold: 0.70,
         );
 
         // --- DIAGNOSTIC LOGGING ---
@@ -102,13 +104,6 @@ class _YOLODemoState extends State<YOLODemo> {
           );
 
           // Class index extraction fallback
-          final dynamic rawClass =
-              detectMap['classIndex'] ??
-              detectMap['class'] ??
-              detectMap['class_id'] ??
-              '0';
-          final String classStr = rawClass.toString();
-
           // 1. DYNAMIC COORDINATE EXTRACTOR
           // Standard YOLO plugins format coordinates either as centers (x, y, width, height)
           // or as bounding boxes (x1, y1, x2, y2).
@@ -135,10 +130,10 @@ class _YOLODemoState extends State<YOLODemo> {
             final double y2 = (detectMap['y2'] ?? detectMap['box']?[3] ?? 0.0)
                 .toDouble();
 
-            boxWidth = (x2 - x1).abs();
-            boxHeight = (y2 - y1).abs();
-            centerX = x1 + (boxWidth / 2);
-            centerY = y1 + (boxHeight / 2);
+            boxWidth = (x2 - x1/1.5).abs();
+            boxHeight = (y2 - y1/1.5).abs();
+            centerX = x1 + ((x2 - x1).abs() / 2);
+            centerY = y1 + ((y2 - y1).abs() / 2);
           }
 
           // 2. STAGE ACCUMULATION
@@ -149,7 +144,7 @@ class _YOLODemoState extends State<YOLODemo> {
               y: centerY,
               width: boxWidth,
               height: boxHeight,
-              scale: 0.6,
+              scale: 1.0,
             ),
           );
           indexCounter++;
