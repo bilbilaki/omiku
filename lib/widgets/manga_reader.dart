@@ -6,11 +6,15 @@ import 'package:omiku/models/manga_panel.dart';
 class MangaReaderScreen extends StatefulWidget {
   final List<MangaPanel> detectedPanels;
   final File mangaImage;
+  final VoidCallback onNextPage;
+  final VoidCallback onPervPage;
 
   const MangaReaderScreen({
     super.key,
     required this.detectedPanels,
     required this.mangaImage,
+    required this.onNextPage,
+    required this.onPervPage,
   });
 
   @override
@@ -138,6 +142,19 @@ class MangaReaderScreenState extends State<MangaReaderScreen>
         _currentStep++;
       });
       _navigateToPanel(widget.detectedPanels[_currentStep]);
+    } else {
+     // widget.onNextPage();
+    }
+  }
+
+  void _pervStep() {
+    if (_currentStep >= 1) {
+      setState(() {
+        _currentStep--;
+      });
+      _navigateToPanel(widget.detectedPanels[_currentStep]);
+    } else {
+     // widget.onPervPage();
     }
   }
 

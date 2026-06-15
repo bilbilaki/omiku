@@ -299,6 +299,7 @@ func StartExtraction(port C.Dart_Port, archivePath, pPath *C.char) {
 				}
 			}
 		}
+		sendLog(port,"finish")
 	}(goPath, goPPath)
 }
 

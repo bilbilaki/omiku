@@ -9,7 +9,7 @@ class ChapterPage {
   final String pageId;
   final int pageNumber;
   final String pageFilePath;
-  final List<MangaPanel> panelsData; // This holds the detected panels
+   List<MangaPanel> panelsData; // This holds the detected panels
 
   ChapterPage({
     required this.chapterId,

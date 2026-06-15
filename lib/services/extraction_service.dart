@@ -19,7 +19,7 @@ class ExtractionService {
     // 1. Enforce App-Sandbox output target location
     // This gives your native code explicit permission to write locally
     final String extractionRoot = p.join(appStorageDir, 'ExtractedMedia');
-    
+
     // Create a unique series ID and directory name
     final String seriesId = const Uuid().v4();
     final String seriesFolderName = "${p.basename(archiveFile.path)}-extracted";
@@ -30,49 +30,66 @@ class ExtractionService {
     try {
       // 2. Fire Go extractor stream listener
       final Stream<String> logStream = _extractor.extractArchive(
-        archiveFile.path, 
+        archiveFile.path,
         extractionRoot,
       );
 
       await for (final log in logStream) {
         debugPrint("[Go Native Log]: $log");
-        
+
         // Handle explicit exceptions bubble up from the Go runtime
         if (log.startsWith("ERROR") || log.contains("failed")) {
           throw Exception("Native Extraction Failed: $log");
         }
+        if (log.contains("finish")) {
+    debugPrint("Go extraction signaled finish. Exiting log stream loop.");
+    break; 
+  }
       }
 
       // 3. Post-Extraction: Scan the output directory structure to build models
       final targetDirectory = Directory(expectedFinalPath);
       if (!await targetDirectory.exists()) {
-        throw Exception("Extraction completed but target folder does not exist.");
+        throw Exception(
+          "Extraction completed but target folder does not exist.",
+        );
       }
 
       // Check if it's a direct format (.cbz, single pdf/epub) or a container bundle
       List<MangaChapter> extractedChapters = [];
 
       final nestedPdfs = Directory(p.join(expectedFinalPath, 'extracted-pdfs'));
-      final nestedEpubs = Directory(p.join(expectedFinalPath, 'extracted-epubs'));
+      final nestedEpubs = Directory(
+        p.join(expectedFinalPath, 'extracted-epubs'),
+      );
 
       if (await nestedPdfs.exists()) {
-        extractedChapters.addAll(await _mapSubfoldersToChapters(seriesId, nestedPdfs)); // Pass seriesId
-      } 
-      if (await nestedEpubs.exists()) {
-        extractedChapters.addAll(await _mapSubfoldersToChapters(seriesId, nestedEpubs)); // Pass seriesId
+        extractedChapters.addAll(
+          await _mapSubfoldersToChapters(seriesId, nestedPdfs),
+        ); // Pass seriesId
       }
-      
+      if (await nestedEpubs.exists()) {
+        extractedChapters.addAll(
+          await _mapSubfoldersToChapters(seriesId, nestedEpubs),
+        ); // Pass seriesId
+      }
+
       // If no subfolders exist, it was a standalone book (.cbz/.pdf/.epub)
       if (extractedChapters.isEmpty) {
         final String chapterId = const Uuid().v4();
-        final List<ChapterPage> pages = await _getChapterPages(seriesId, chapterId, targetDirectory.path); // Get pages
+        final List<ChapterPage> pages = await _getChapterPages(
+          seriesId,
+          chapterId,
+          targetDirectory.path,
+        ); // Get pages
         extractedChapters.add(
           MangaChapter(
             id: chapterId, // Use generated chapterId
             title: p.basenameWithoutExtension(archiveFile.path),
             chapterNumber: 1.0,
             pathToChapterData: expectedFinalPath,
-            totalPages: pages.length, // Set totalPages based on actual pages found
+            totalPages:
+                pages.length, // Set totalPages based on actual pages found
             pagesData: pages, // Pass the generated pages
           ),
         );
@@ -83,14 +100,15 @@ class ExtractionService {
         final newSeries = MangaSeries(
           id: seriesId,
           title: p.basenameWithoutExtension(archiveFile.path),
-          coverPath: _findFirstAvailablePage(extractedChapters.first.pathToChapterData),
+          coverPath: _findFirstAvailablePage(
+            extractedChapters.first.pathToChapterData,
+          ),
           chapters: extractedChapters,
         );
 
         _mangaStore.addMangaSeries(newSeries);
         debugPrint("Successfully added ${newSeries.title} to storage!");
       }
-
     } catch (e) {
       debugPrint("Error handling extraction routine: $e");
       rethrow;
@@ -98,7 +116,11 @@ class ExtractionService {
   }
 
   /// New helper function: Generates a list of ChapterPage objects for a given chapter directory.
-  Future<List<ChapterPage>> _getChapterPages(String seriesId, String chapterId, String chapterDirPath) async {
+  Future<List<ChapterPage>> _getChapterPages(
+    String seriesId,
+    String chapterId,
+    String chapterDirPath,
+  ) async {
     final List<ChapterPage> pages = [];
     final Directory dir = Directory(chapterDirPath);
     if (!await dir.exists()) {
@@ -110,22 +132,21 @@ class ExtractionService {
         .list(recursive: false)
         .where((entity) {
           final ext = p.extension(entity.path).toLowerCase();
-          return entity is File && (ext == '.png' || ext == '.jpg' || ext == '.jpeg' || ext == '.webp');
+          return entity is File &&
+              (ext == '.png' ||
+                  ext == '.jpg' ||
+                  ext == '.jpeg' ||
+                  ext == '.webp');
         })
         .cast<File>()
         .toList();
+final RegExp numRegExp = RegExp(r'(\d+)');
+   imageFiles.sort((a, b) {
+  final String nameA = p.basenameWithoutExtension(a.path);
+  final String nameB = p.basenameWithoutExtension(b.path);
 
-    // Sort files to ensure page numbers are sequential.
-    // A robust sorting mechanism might parse numerical parts of filenames (e.g., 'page_10.jpg' after 'page_2.jpg').
-    imageFiles.sort((a, b) {
-      final String nameA = p.basenameWithoutExtension(a.path);
-      final String nameB = p.basenameWithoutExtension(b.path);
-      
-      // Attempt to extract numbers from filenames for better natural sorting
-      final RegExp numRegExp = RegExp(r'(\d+)');
-      final matchA = numRegExp.firstMatch(nameA);
-      final matchB = numRegExp.firstMatch(nameB);
-
+  final matchA = numRegExp.firstMatch(nameA);
+  final matchB = numRegExp.firstMatch(nameB);
       if (matchA != null && matchB != null) {
         final int numA = int.tryParse(matchA.group(1)!) ?? 0;
         final int numB = int.tryParse(matchB.group(1)!) ?? 0;
@@ -141,7 +162,8 @@ class ExtractionService {
           chapterId: chapterId,
           pageNumber: i + 1, // Page numbers are 1-based
           pageFilePath: imageFiles[i].path,
-          panelsData: [], // Panel data is empty for now, as no detection logic is provided
+          panelsData:
+              [], // Panel data is empty for now, as no detection logic is provided
         ),
       );
     }
@@ -149,22 +171,30 @@ class ExtractionService {
   }
 
   /// Scans structural inner outputs generated by your Go code loop
-  Future<List<MangaChapter>> _mapSubfoldersToChapters(String seriesId, Directory parentDir) async {
+  Future<List<MangaChapter>> _mapSubfoldersToChapters(
+    String seriesId,
+    Directory parentDir,
+  ) async {
     List<MangaChapter> chapters = [];
     final List<FileSystemEntity> entities = await parentDir.list().toList();
-    
+
     double chapterIndex = 1.0;
     for (var entity in entities) {
       if (entity is Directory && entity.path.endsWith('-extracted')) {
         final String chapterId = const Uuid().v4(); // Generate chapter ID here
-        final List<ChapterPage> pages = await _getChapterPages(seriesId, chapterId, entity.path); // Get pages
+        final List<ChapterPage> pages = await _getChapterPages(
+          seriesId,
+          chapterId,
+          entity.path,
+        ); // Get pages
         chapters.add(
           MangaChapter(
             id: chapterId, // Use generated chapterId
             title: p.basename(entity.path).replaceAll('-extracted', ''),
             chapterNumber: chapterIndex++,
             pathToChapterData: entity.path,
-            totalPages: pages.length, // Set totalPages based on actual pages found
+            totalPages:
+                pages.length, // Set totalPages based on actual pages found
             pagesData: pages, // Pass the generated pages
           ),
         );
@@ -185,7 +215,6 @@ class ExtractionService {
       final ext = p.extension(file.path).toLowerCase();
       if (ext == '.png' || ext == '.jpg' || ext == '.jpeg' || ext == '.webp') {
         count++;
-        
       }
     }
     return count;

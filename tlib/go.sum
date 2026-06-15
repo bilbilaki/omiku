@@ -12,6 +12,10 @@ github.com/gen2brain/go-unarr v0.2.4 h1:Iu2kqtGfkLBSQoTFwMkSCmp0g3GrEM/XMVWzo9TQ
 github.com/gen2brain/go-unarr v0.2.4/go.mod h1:0kdy3HtjKBcEaewifXZguHCvt4qD9V8iJCx4FPEOWT8=
 github.com/jupiterrider/ffi v0.5.0 h1:j2nSgpabbV1JOwgP4Kn449sJUHq3cVLAZVBoOYn44V8=
 github.com/jupiterrider/ffi v0.5.0/go.mod h1:x7xdNKo8h0AmLuXfswDUBxUsd2OqUP4ekC8sCnsmbvo=
+github.com/mattn/go-pointer v0.0.1 h1:n+XhsuGeVO6MEAp7xyEukFINEa+Quek5psIR/ylA6o0=
+github.com/mattn/go-pointer v0.0.1/go.mod h1:2zXcozF6qYGgmsG+SeTZz3oAbFLdD3OWqnUbNvJZAlc=
+github.com/mattn/go-tflite v1.0.5 h1:UOByIpeNtY9urOeID5zBMJBrQfZjT6SO4+CLAzSREWw=
+github.com/mattn/go-tflite v1.0.5/go.mod h1:j7bVlVHgKURK0p7AQOw3OqlGE2SVXqck7JsJo4wI+bc=
 github.com/ninehills/pdf2md v0.0.0-20260520143223-b42bc430ddc9 h1:qF2QoEYSELXbxM/E1WzyFjFlR5fNxZFj6GZAbnfB6NQ=
 github.com/ninehills/pdf2md v0.0.0-20260520143223-b42bc430ddc9/go.mod h1:D8aGsXDnyL0gcxpg/7ScdGDm4MAbZMlaayl5upbVk+A=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
