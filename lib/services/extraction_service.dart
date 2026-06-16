@@ -1,9 +1,12 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:omiku/extractor/ffibindings.dart';
 import 'package:omiku/models/manga_series.dart';
 import 'package:omiku/providers/manga_store.dart';
+import 'package:omiku/services/panel_detector_service.dart';
 import 'package:path/path.dart' as p;
+import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 // import 'package:uuid/uuid.dart'; // Already imported above
 
@@ -15,7 +18,11 @@ class ExtractionService {
 
   /// Handles processing a file archive, passing sandbox paths to Go,
   /// and building a fully mapped MangaSeries model out of the results.
-  Future<void> processArchive(File archiveFile, String appStorageDir) async {
+  Future<void> processArchive(
+    File archiveFile,
+    String appStorageDir,
+    BuildContext context,
+  ) async {
     // 1. Enforce App-Sandbox output target location
     // This gives your native code explicit permission to write locally
     final String extractionRoot = p.join(appStorageDir, 'ExtractedMedia');
@@ -42,9 +49,9 @@ class ExtractionService {
           throw Exception("Native Extraction Failed: $log");
         }
         if (log.contains("finish")) {
-    debugPrint("Go extraction signaled finish. Exiting log stream loop.");
-    break; 
-  }
+          debugPrint("Go extraction signaled finish. Exiting log stream loop.");
+          break;
+        }
       }
 
       // 3. Post-Extraction: Scan the output directory structure to build models
@@ -65,22 +72,23 @@ class ExtractionService {
 
       if (await nestedPdfs.exists()) {
         extractedChapters.addAll(
-          await _mapSubfoldersToChapters(seriesId, nestedPdfs),
+          await _mapSubfoldersToChapters(seriesId, nestedPdfs, context),
         ); // Pass seriesId
       }
       if (await nestedEpubs.exists()) {
         extractedChapters.addAll(
-          await _mapSubfoldersToChapters(seriesId, nestedEpubs),
+          await _mapSubfoldersToChapters(seriesId, nestedEpubs, context),
         ); // Pass seriesId
       }
 
       // If no subfolders exist, it was a standalone book (.cbz/.pdf/.epub)
       if (extractedChapters.isEmpty) {
         final String chapterId = const Uuid().v4();
-        final List<ChapterPage> pages = await _getChapterPages(
+        List<ChapterPage> pages = await _getChapterPages(
           seriesId,
           chapterId,
           targetDirectory.path,
+          context,
         ); // Get pages
         extractedChapters.add(
           MangaChapter(
@@ -120,12 +128,17 @@ class ExtractionService {
     String seriesId,
     String chapterId,
     String chapterDirPath,
+    BuildContext context,
   ) async {
     final List<ChapterPage> pages = [];
     final Directory dir = Directory(chapterDirPath);
     if (!await dir.exists()) {
       return pages; // Return empty list if directory doesn't exist
     }
+    final panelDetectionService = PanelDetectionService();
+
+    // Ensure the YOLO model is fully loaded before detection
+    await panelDetectionService.ensureModelLoaded();
 
     // Get all image files in the directory
     final List<File> imageFiles = await dir
@@ -140,13 +153,13 @@ class ExtractionService {
         })
         .cast<File>()
         .toList();
-final RegExp numRegExp = RegExp(r'(\d+)');
-   imageFiles.sort((a, b) {
-  final String nameA = p.basenameWithoutExtension(a.path);
-  final String nameB = p.basenameWithoutExtension(b.path);
+    final RegExp numRegExp = RegExp(r'(\d+)');
+    imageFiles.sort((a, b) {
+      final String nameA = p.basenameWithoutExtension(a.path);
+      final String nameB = p.basenameWithoutExtension(b.path);
 
-  final matchA = numRegExp.firstMatch(nameA);
-  final matchB = numRegExp.firstMatch(nameB);
+      final matchA = numRegExp.firstMatch(nameA);
+      final matchB = numRegExp.firstMatch(nameB);
       if (matchA != null && matchB != null) {
         final int numA = int.tryParse(matchA.group(1)!) ?? 0;
         final int numB = int.tryParse(matchB.group(1)!) ?? 0;
@@ -156,14 +169,17 @@ final RegExp numRegExp = RegExp(r'(\d+)');
     });
 
     for (int i = 0; i < imageFiles.length; i++) {
+      var panels = await panelDetectionService.pickAndDetect(
+        imageFiles[i],
+      );
+
       pages.add(
         ChapterPage(
           seriesId: seriesId,
           chapterId: chapterId,
           pageNumber: i + 1, // Page numbers are 1-based
           pageFilePath: imageFiles[i].path,
-          panelsData:
-              [], // Panel data is empty for now, as no detection logic is provided
+          panelsData: panels,
         ),
       );
     }
@@ -174,6 +190,7 @@ final RegExp numRegExp = RegExp(r'(\d+)');
   Future<List<MangaChapter>> _mapSubfoldersToChapters(
     String seriesId,
     Directory parentDir,
+    BuildContext context,
   ) async {
     List<MangaChapter> chapters = [];
     final List<FileSystemEntity> entities = await parentDir.list().toList();
@@ -186,6 +203,7 @@ final RegExp numRegExp = RegExp(r'(\d+)');
           seriesId,
           chapterId,
           entity.path,
+          context,
         ); // Get pages
         chapters.add(
           MangaChapter(

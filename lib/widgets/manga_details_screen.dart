@@ -29,69 +29,67 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
 
   // Method to check and generate panels for an entire chapter if needed
   Future<void> _handleChapterTap(BuildContext context, MangaChapter chapter) async {
-    final mangaStore = Provider.of<MangaStore>(context, listen: false);
-    final panelDetectionService = Provider.of<PanelDetectionService>(context, listen: false);
+   // final mangaStore = Provider.of<MangaStore>(context, listen: false);
 
-    bool panelsMissing = chapter.pagesData.any((page) => page.panelsData.isEmpty);
 
-    if (panelsMissing) {
-      // Show progress indicator
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (dialogContext) => AlertDialog(
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const CircularProgressIndicator(),
-              const SizedBox(height: 16),
-              Text('Detecting panels for Chapter ${chapter.chapterNumber} (page 1/${chapter.pagesData.length})...'),
-            ],
-          ),
-        ),
-      );
+    // if (panelsMissing) {
+    //   // Show progress indicator
+    //   showDialog(
+    //     context: context,
+    //     barrierDismissible: false,
+    //     builder: (dialogContext) => AlertDialog(
+    //       content: Column(
+    //         mainAxisSize: MainAxisSize.min,
+    //         children: [
+    //           const CircularProgressIndicator(),
+    //           const SizedBox(height: 16),
+    //           Text('Detecting panels for Chapter ${chapter.chapterNumber} (page 1/${chapter.pagesData.length})...'),
+    //         ],
+    //       ),
+    //     ),
+    //   );
 
-      try {
-        List<ChapterPage> updatedPages = [];
-        for (int i = 0; i < chapter.pagesData.length; i++) {
-          final page = chapter.pagesData[i];
-          // Update dialog message for current page
-          if (mounted) {
-            (Navigator.of(context).overlay?.context ?? context).findRenderObject()?.markNeedsLayout();
-            // This is a hacky way to update dialog content. Better is to use a StatefuLBuilder or a custom dialog widget.
-            // For now, let's just log and rely on the overall progress indicator.
-            debugPrint('Processing panels for page ${i + 1}/${chapter.pagesData.length}');
-          }
+    //   try {
+    //     List<ChapterPage> updatedPages = [];
+    //     for (int i = 0; i < chapter.pagesData.length; i++) {
+    //       final page = chapter.pagesData[i];
+    //       // Update dialog message for current page
+    //       if (mounted) {
+    //         (Navigator.of(context).overlay?.context ?? context).findRenderObject()?.markNeedsLayout();
+    //         // This is a hacky way to update dialog content. Better is to use a StatefuLBuilder or a custom dialog widget.
+    //         // For now, let's just log and rely on the overall progress indicator.
+    //         debugPrint('Processing panels for page ${i + 1}/${chapter.pagesData.length}');
+    //       }
 
-          final updatedPage = await panelDetectionService.detectPanelsForPage(page, isLTR: false); // Assuming RTL for manga
-          updatedPages.add(updatedPage);
-          // Immediately update the store for each page. This ensures progress is saved
-          // even if the app crashes, and allows `Consumer` to react if needed.
-          mangaStore.updateChapterPagePanels(
-                        widget.series.id,
+    //       final updatedPage = await panelDetectionService.detectPanelsForPage(page, isLTR: false); // Assuming RTL for manga
+    //       updatedPages.add(updatedPage);
+    //       // Immediately update the store for each page. This ensures progress is saved
+    //       // even if the app crashes, and allows `Consumer` to react if needed.
+    //       mangaStore.updateChapterPagePanels(
+    //                     widget.series.id,
 
-            chapter.id,
-            page.pageId,
-            updatedPage.panelsData,
-            notify: false, // Don't notify for each individual page update during this batch
-          );
-        }
+    //         chapter.id,
+    //         page.pageNumber.toString(),
+    //         updatedPage.panelsData,
+    //         notify: false, // Don't notify for each individual page update during this batch
+    //       );
+    //     }
 
-        // After all pages in the chapter are processed, notify listeners once
-        // to update the UI with the final state of the series/chapter.
-        mangaStore.notifyListeners();
+    //     // After all pages in the chapter are processed, notify listeners once
+    //     // to update the UI with the final state of the series/chapter.
+    //     mangaStore.notifyListeners();
 
-        Navigator.of(context).pop(); // Dismiss progress indicator
-        debugPrint('All panels detected for Chapter ${chapter.chapterNumber}.');
-      } catch (e) {
-        debugPrint('Error detecting panels: $e');
-        Navigator.of(context).pop(); // Dismiss progress indicator
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to detect panels for chapter: $e')),
-        );
-        return; // Do not navigate if panel detection failed
-      }
-    }
+    //     Navigator.of(context).pop(); // Dismiss progress indicator
+    //     debugPrint('All panels detected for Chapter ${chapter.chapterNumber}.');
+    //   } catch (e) {
+    //     debugPrint('Error detecting panels: $e');
+    //     Navigator.of(context).pop(); // Dismiss progress indicator
+    //     ScaffoldMessenger.of(context).showSnackBar(
+    //       SnackBar(content: Text('Failed to detect panels for chapter: $e')),
+    //     );
+    //     return; // Do not navigate if panel detection failed
+    //   }
+    // }
 
     // Navigate to the ChapterReaderScreen once panels are ready (either detected or already existed)
     Navigator.of(context).push(
@@ -212,16 +210,13 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
                         style: const TextStyle(color: Colors.white),
                       ),
                       subtitle: Text(
-                        '${chapter.pagesData.length} pages | Panels detected: ${chapter.pagesData.every((p) => p.panelsData.isNotEmpty) ? 'Yes' : 'No'}',
+                        '${chapter.pagesData.length} pages | Panels detected: ${chapter.pagesData.every((p) => p.panelsData!.isNotEmpty) ? 'Yes' : 'No'}',
                         style: const TextStyle(color: Colors.white70),
                       ),
                       trailing: Icon(
-                        chapter.pagesData.every((p) => p.panelsData.isNotEmpty)
-                            ? Icons.check_circle_outline
-                            : Icons.warning_amber,
-                        color: chapter.pagesData.every((p) => p.panelsData.isNotEmpty)
-                            ? Colors.green
-                            : Colors.orange,
+                             Icons.check_circle_outline,
+                        color: 
+                             Colors.green
                       ),
                       onTap: () => _handleChapterTap(context, chapter),
                     );

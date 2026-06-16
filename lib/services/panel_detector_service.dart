@@ -14,9 +14,12 @@ class PanelDetectionService {
   PanelDetectionService() {
     _loadYOLOModel();
   }
+  File? selectedImage;
+  //List<MangaPanel> detectedPanels = [];
+  bool isLoading = false;
   double originalWidth = 0.0;
   double originalHeight = 0.0;
-
+  bool isLTR = false;
   Future<void> _loadYOLOModel() async {
     if (_isLoadingModel || _isModelLoaded) return;
     _isLoadingModel = true;
@@ -39,40 +42,35 @@ class PanelDetectionService {
 
   // Exposed method to check model status
   bool get isModelReady => _isModelLoaded;
-  List<MangaPanel> localPanels = [];
+
+  /// Ensure the model is fully loaded before detection
+  Future<void> ensureModelLoaded() async {
+    await Future.doWhile(() async {
+      if (_isModelLoaded) return false; // Done
+      if (!_isLoadingModel && _yolo == null) {
+        _loadYOLOModel(); // Start loading if not already started
+      }
+      await Future.delayed(const Duration(milliseconds: 100));
+      return !_isModelLoaded; // Continue waiting if not loaded
+    });
+  }
 
   // This method will take a ChapterPage and return an updated one with panels
-  Future<ChapterPage> detectPanelsForPage(
-    ChapterPage chapterPage, {
-    bool isLTR = false,
-  }) async {
-    if (!_isModelLoaded) {
-      debugPrint("YOLO model not loaded. Attempting to load...");
-      await _loadYOLOModel();
-      if (!_isModelLoaded) {
-        debugPrint(
-          "YOLO model failed to load. Cannot detect panels for page ${chapterPage.pageFilePath}.",
-        );
-        return chapterPage.copyWith(
-          panelsData: [],
-        ); // Return page without panels
-      }
-    }
-    localPanels.clear();
-    final File imageFile = File(chapterPage.pageFilePath);
-    if (!await imageFile.exists()) {
-      debugPrint("Image file not found for path: ${chapterPage.pageFilePath}");
-      return chapterPage.copyWith(panelsData: []);
-    }
+  Future<List<MangaPanel>?> pickAndDetect(File image) async {
+    if (_yolo == null || !_isModelLoaded) return null;
+    List<MangaPanel>? localPanels = [];
+
+    selectedImage = image;
+    isLoading = true;
 
     try {
-      final Uint8List imageBytes = imageFile.readAsBytesSync();
+      final Uint8List imageBytes = await selectedImage!.readAsBytes();
       final decodedImage = await decodeImageFromList(imageBytes);
       originalWidth = decodedImage.width.toDouble();
       originalHeight = decodedImage.height.toDouble();
       final Map<String, dynamic> response = await _yolo!.predict(
         imageBytes,
-        confidenceThreshold: 0.70,
+        confidenceThreshold: 0.65,
       );
 
       // --- DIAGNOSTIC LOGGING ---
@@ -170,11 +168,38 @@ class PanelDetectionService {
           }
         }
       });
+
+      return localPanels;
     } catch (e, stacktrace) {
       debugPrint("Error running prediction: $e");
       debugPrint("Stacktrace: $stacktrace");
+      return null;
     }
-    chapterPage.panelsData = localPanels;
-    return chapterPage;
   }
+}
+
+// Extracted sorting logic
+void _sortPanels(
+  List<MangaPanel> panels,
+  bool isLTR,
+  double originalImageHeight,
+) {
+  panels.sort((a, b) {
+    // dynamically calculate row tolerance, e.g., 10% of image height
+    // The original code used 150.0, which is a fixed pixel value.
+    // Using a percentage of height makes it adaptive to different resolutions.
+    const double rowToleranceFactor = 0.10; // 10% of image height
+    final double rowTolerance = originalImageHeight * rowToleranceFactor;
+
+    if ((a.y - b.y).abs() > rowTolerance) {
+      return a.y.compareTo(b.y); // Always Top-to-Bottom
+    } else {
+      // They are within the same row tolerance. Apply reading direction.
+      if (isLTR) {
+        return a.x.compareTo(b.x); // Western: Left-to-Right
+      } else {
+        return b.x.compareTo(a.x); // Manga: Right-to-Left
+      }
+    }
+  });
 }

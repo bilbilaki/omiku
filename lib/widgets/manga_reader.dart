@@ -143,7 +143,7 @@ class MangaReaderScreenState extends State<MangaReaderScreen>
       });
       _navigateToPanel(widget.detectedPanels[_currentStep]);
     } else {
-     // widget.onNextPage();
+      widget.onNextPage();
     }
   }
 
@@ -154,7 +154,7 @@ class MangaReaderScreenState extends State<MangaReaderScreen>
       });
       _navigateToPanel(widget.detectedPanels[_currentStep]);
     } else {
-     // widget.onPervPage();
+      widget.onPervPage();
     }
   }
 
@@ -179,9 +179,7 @@ class MangaReaderScreenState extends State<MangaReaderScreen>
             minScale: 0.05,
             maxScale: 6.0,
             constrained: false, // <--- THE MAGIC FIX
-            child: imageSize == Size.zero
-                ? const SizedBox.expand()
-                : SizedBox(
+            child:SizedBox(
                     width: imageSize.width,
                     height: imageSize.height,
                     child: Stack(
@@ -198,105 +196,106 @@ class MangaReaderScreenState extends State<MangaReaderScreen>
                             ),
                           ),
                         ),
-                        Positioned.fill(
-                          child: IgnorePointer(
-                            child: CustomPaint(
-                              painter: InternalDebugPainter(
-                                widget.detectedPanels,
-                                _currentStep,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-          ),
-          IgnorePointer(
-            child: Center(
-              child: Container(
-                width: 30,
-                height: 30,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.amber, width: 2),
-                ),
-                child: Center(
-                  child: Container(width: 4, height: 4, color: Colors.amber),
-                ),
-              ),
-            ),
-          ),
-          Positioned(
-            top: 40,
-            left: 15,
-            right: 15,
-            child: IgnorePointer(
-              child: Card(
-                color: Colors.black.withAlpha(150),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(12.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'LIVE ENGINE TELEMETRY [Panel ${_currentStep + 1}/${widget.detectedPanels.length}]',
-                        style: const TextStyle(
-                          color: Colors.green,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
-                        ),
-                      ),
-                      const Divider(color: Colors.grey, height: 10),
-                      Text(
-                        'Device Viewport Size: ${viewportSize.width.toStringAsFixed(0)} x ${viewportSize.height.toStringAsFixed(0)}',
-                        style: _debugStyle,
-                      ),
-                      Text(
-                        'File Raw Resolution: ${_rawImageSize.width.toStringAsFixed(0)} x ${_rawImageSize.height.toStringAsFixed(0)}',
-                        style: _debugStyle,
-                      ),
-                      Text(
-                        'Viewport Scale: ${_currentScale.toStringAsFixed(2)}x (Targeting: ${activePanelTargetScale.toStringAsFixed(2)}x)',
-                        style: _debugStyle,
-                      ),
-                      Text(
-                        'Camera Position Vector: (${_currentX.toStringAsFixed(0)}, ${_currentY.toStringAsFixed(0)})',
-                        style: _debugStyle,
-                      ),
-                      if (activePanel != null) ...[
-                        const Divider(color: Colors.grey, height: 10),
-                        Text(
-                          'Target Panel Specs:',
-                          style: const TextStyle(
-                            color: Colors.amber,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                          ),
-                        ),
-                        Text(
-                          '   - Global Center Coordinate: (${activePanel.x.toStringAsFixed(1)}, ${activePanel.y.toStringAsFixed(1)})',
-                          style: _debugStyle,
-                        ),
-                        Text(
-                          '   - Bounding Box: ${activePanel.width.toStringAsFixed(0)} x ${activePanel.height.toStringAsFixed(0)}',
-                          style: _debugStyle,
-                        ),
-                        Text(
-                          '   - Orientation: ${activePanel.orientationLabel}',
-                          style: _debugStyle,
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
+          //               Positioned.fill(
+          //                 child: IgnorePointer(
+          //                   child: CustomPaint(
+          //                     painter: InternalDebugPainter(
+          //                       widget.detectedPanels,
+          //                       _currentStep,
+          //                     ),
+          //                   ),
+          //                 ),
+          //               ),
+          //             ],
+          //           ),
+          //         ),
+          // ),
+          // IgnorePointer(
+          //   child: Center(
+          //     child: Container(
+          //       width: 30,
+          //       height: 30,
+          //       decoration: BoxDecoration(
+          //         shape: BoxShape.circle,
+          //         border: Border.all(color: Colors.amber, width: 2),
+          //       ),
+          //       child: Center(
+          //         child: Container(width: 4, height: 4, color: Colors.amber),
+          //       ),
+          //     ),
+          //   ),
+          // ),
+          // Positioned(
+          //   top: 40,
+          //   left: 15,
+          //   right: 15,
+          //   child: IgnorePointer(
+          //     child: Card(
+          //       color: Colors.black.withAlpha(150),
+          //       shape: RoundedRectangleBorder(
+          //         borderRadius: BorderRadius.circular(8),
+          //       ),
+          //       child: Padding(
+          //         padding: const EdgeInsets.all(12.0),
+          //         child: Column(
+          //           crossAxisAlignment: CrossAxisAlignment.start,
+          //           mainAxisSize: MainAxisSize.min,
+          //           children: [
+          //             Text(
+          //               'LIVE ENGINE TELEMETRY [Panel ${_currentStep + 1}/${widget.detectedPanels.length}]',
+          //               style: const TextStyle(
+          //                 color: Colors.green,
+          //                 fontWeight: FontWeight.bold,
+          //                 fontSize: 13,
+          //               ),
+          //             ),
+          //             const Divider(color: Colors.grey, height: 10),
+          //             Text(
+          //               'Device Viewport Size: ${viewportSize.width.toStringAsFixed(0)} x ${viewportSize.height.toStringAsFixed(0)}',
+          //               style: _debugStyle,
+          //             ),
+          //             Text(
+          //               'File Raw Resolution: ${_rawImageSize.width.toStringAsFixed(0)} x ${_rawImageSize.height.toStringAsFixed(0)}',
+          //               style: _debugStyle,
+          //             ),
+          //             Text(
+          //               'Viewport Scale: ${_currentScale.toStringAsFixed(2)}x (Targeting: ${activePanelTargetScale.toStringAsFixed(2)}x)',
+          //               style: _debugStyle,
+          //             ),
+          //             Text(
+          //               'Camera Position Vector: (${_currentX.toStringAsFixed(0)}, ${_currentY.toStringAsFixed(0)})',
+          //               style: _debugStyle,
+          //             ),
+          //             if (activePanel != null) ...[
+          //               const Divider(color: Colors.grey, height: 10),
+          //               Text(
+          //                 'Target Panel Specs:',
+          //                 style: const TextStyle(
+          //                   color: Colors.amber,
+          //                   fontWeight: FontWeight.bold,
+          //                   fontSize: 12,
+          //                 ),
+          //               ),
+          //               Text(
+          //                 '   - Global Center Coordinate: (${activePanel.x.toStringAsFixed(1)}, ${activePanel.y.toStringAsFixed(1)})',
+          //                 style: _debugStyle,
+          //               ),
+          //               Text(
+          //                 '   - Bounding Box: ${activePanel.width.toStringAsFixed(0)} x ${activePanel.height.toStringAsFixed(0)}',
+          //                 style: _debugStyle,
+          //               ),
+          //               Text(
+          //                 '   - Orientation: ${activePanel.orientationLabel}',
+          //                 style: _debugStyle,
+        ])  ),
+      )
+      ,     //    ],
+           //         ],
+             //      ),
+           //      ),
+          //     ),
+          //   ),
+          // ),
           Positioned(
             bottom: 30,
             left: 30,
@@ -306,8 +305,8 @@ class MangaReaderScreenState extends State<MangaReaderScreen>
               children: [
                 IconButton(
                   hoverColor: Colors.black54,
-                  icon: const Icon(Icons.arrow_back, color: Colors.white),
-                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.arrow_back, color: Color.fromARGB(255, 51, 51, 51)),
+                  onPressed: _pervStep,
                 ),
                 FloatingActionButton.extended(
                   onPressed: _nextStep,

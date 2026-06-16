@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
 import 'package:omiku/providers/manga_store.dart';
 import 'package:omiku/services/panel_detector_service.dart';
-import 'package:omiku/widgets/extractArchive.dart';
 import 'package:omiku/widgets/manga_library.dart';
 // import 'package:omiku/models/panel_debug_painter.dart'; // REMOVED: Not needed in final reader
 // import 'package:omiku/widgets/manga_reader.dart'; // Replaced by our new screens and modified reader

@@ -4,12 +4,12 @@ import 'package:uuid/uuid.dart';
 
 // --- ChapterPage modifications (pageId in constructor, toJson, fromJson, copyWith) ---
 class ChapterPage {
-  final String seriesId;
-  final String chapterId;
-  final String pageId;
-  final int pageNumber;
-  final String pageFilePath;
-   List<MangaPanel> panelsData; // This holds the detected panels
+   String seriesId;
+   String chapterId;
+   String pageId;
+   int pageNumber;
+   String pageFilePath;
+   List<MangaPanel>? panelsData; // This holds the detected panels
 
   ChapterPage({
     required this.chapterId,
@@ -47,7 +47,7 @@ class ChapterPage {
       'pageId': pageId,
       'pageNumber': pageNumber,
       'pageFilePath': pageFilePath,
-      'panelsData': panelsData.map((x) => x.toJson()).toList(),
+      'panelsData': panelsData?.map((x) => x.toJson()).toList(),
     };
   }
 
@@ -61,20 +61,19 @@ class ChapterPage {
       pageFilePath: json['pageFilePath'] as String,
       panelsData: (json['panelsData'] as List<dynamic>?)
               ?.map((x) => MangaPanel.fromJson(x as Map<String, dynamic>))
-              .toList() ??
-          [],
+              .toList() 
     );
   }
 }
 
 // --- MangaChapter modifications (addPage, updatePage, copyWith, toJson, fromJson) ---
 class MangaChapter {
-  final String id;
-  final String title;
-  final double chapterNumber; // double handles chapter 1.5, 2.1, etc.
-  final String pathToChapterData; // Local directory path or API URL
-  final int totalPages;
-  final List<ChapterPage> pagesData; // This is the list of ChapterPage objects
+   String id;
+  String title;
+   double chapterNumber; // double handles chapter 1.5, 2.1, etc.
+   String pathToChapterData; // Local directory path or API URL
+   int totalPages;
+   List<ChapterPage> pagesData; // This is the list of ChapterPage objects
 
   MangaChapter({
     required this.id,
@@ -95,7 +94,7 @@ class MangaChapter {
 
   // Renamed from `addChapter` to `addPage` and returns MangaChapter
   MangaChapter addPage(ChapterPage newChapterPage) {
-    final updatedPages = List<ChapterPage>.from(pagesData)..add(newChapterPage);
+    List<ChapterPage> updatedPages = List<ChapterPage>.from(pagesData)..add(newChapterPage);
     // Optional: Sort pages automatically by page number
     updatedPages.sort((a, b) => a.pageNumber.compareTo(b.pageNumber));
     return copyWith(pagesData: updatedPages, totalPages: updatedPages.length);
@@ -103,8 +102,8 @@ class MangaChapter {
 
   // Added method to update a specific page in the chapter
   MangaChapter updatePage(ChapterPage updatedPage) {
-    final List<ChapterPage> newPagesData = List.from(pagesData);
-    final int index = newPagesData.indexWhere((page) => page.pageId == updatedPage.pageId);
+     List<ChapterPage> newPagesData = List.from(pagesData);
+     int index = newPagesData.indexWhere((page) => page.pageId == updatedPage.pageId);
     if (index != -1) {
       newPagesData[index] = updatedPage;
       // Re-sort to maintain order, although pageNumber should keep them sorted
@@ -160,11 +159,11 @@ class MangaChapter {
 }
 // --- UserProgress (no changes, but included for completeness) ---
 class UserProgress {
-  final bool isBookmarked;
-  final bool isLiked; // Bool rating system as requested
-  final String? lastReadChapterId;
-  final int lastReadPage;
-  final DateTime? lastReadAt;
+   bool isBookmarked;
+   bool isLiked; // Bool rating system as requested
+   String? lastReadChapterId;
+   int lastReadPage;
+   DateTime? lastReadAt;
 
   UserProgress({
     this.isBookmarked = false,
@@ -215,13 +214,12 @@ class UserProgress {
 
 // --- MangaSeries modifications (addChapter, updateChapter, copyWith, toJson, fromJson) ---
 class MangaSeries {
-  final String id;
-  final String title;
-  final String coverPath;
-  final String author;
-  final String description;
-  final List<MangaChapter> chapters;
-  final UserProgress progress;
+  String id;
+   String title; String coverPath;
+  String author;
+ String description;
+   List<MangaChapter> chapters;
+   UserProgress progress;
 
   MangaSeries({
     required this.id,

@@ -81,7 +81,7 @@ class MangaStore extends ChangeNotifier {
       final int chapterIndex = series.chapters.indexWhere((c) => c.id == chapterId);
       if (chapterIndex != -1) {
         MangaChapter chapter = series.chapters[chapterIndex];
-        final int pageIndex = chapter.pagesData.indexWhere((p) => p.pageId == pageId);
+        final int pageIndex = chapter.pagesData.indexWhere((p) => p.pageNumber.toString() == pageId);
         if (pageIndex != -1) {
           ChapterPage oldPage = chapter.pagesData[pageIndex];
           ChapterPage updatedPage = oldPage.copyWith(panelsData: newPanelsData);
@@ -118,12 +118,14 @@ class MangaStore extends ChangeNotifier {
     }
   }
 
-  /// Helper to convert runtime list into stringified JSON and push to local storage
-  void _saveLibraryToDisk() {
-    final List<Map<String, dynamic>> jsonList = 
-        _library.map((series) => series.toJson()).toList();
-    
-    final String serializedString = jsonEncode(jsonList);
-    _box.put('library', serializedString); // Sync entire database to disk
-  }
-}
+void _saveLibraryToDisk() {
+  final List<Map<String, dynamic>> jsonList = 
+      _library.map((series) => series.toJson()).toList();
+  
+  final String serializedString = jsonEncode(jsonList);
+  
+  // DEBUG LOG: Inspect if panels are actually present here right before saving
+  debugPrint("SAVING TO DISK: $serializedString"); 
+  
+  _box.put('library', serializedString);
+}}

@@ -81,16 +81,8 @@ class _ChapterReaderScreenState extends State<ChapterReaderScreen> {
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFF1E1E24),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF1E1E24),
-        iconTheme: const IconThemeData(color: Colors.white),
-        title: Text(
-          'Chapter ${widget.chapter.chapterNumber} (Page ${_currentPageIndex + 1}/${widget.chapter.pagesData.length})',
-          style: const TextStyle(color: Colors.white),
-        ),
-      ),
       body: PageView.builder(
+        physics: const NeverScrollableScrollPhysics(),
         controller: _pageController,
         itemCount: widget.chapter.pagesData.length,
         onPageChanged: (index) {
@@ -104,7 +96,7 @@ class _ChapterReaderScreenState extends State<ChapterReaderScreen> {
           // with its panels. It will call _goToNextPage/_goToPreviousPage
           // when the user runs out of panels on the current page.
           return MangaReaderScreen(
-            detectedPanels: currentPage.panelsData,
+            detectedPanels: currentPage.panelsData??[],
             mangaImage: File(currentPage.pageFilePath),
             onNextPage: _goToNextPage,
             onPervPage: _goToPreviousPage,

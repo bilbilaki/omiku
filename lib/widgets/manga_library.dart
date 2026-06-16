@@ -52,7 +52,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
         final extractionService = Provider.of<ExtractionService>(context, listen: false);
         final appStorageDir = (await getApplicationSupportDirectory()).path; // Requires path_provider
 
-        await extractionService.processArchive(file, appStorageDir);
+        await extractionService.processArchive(file, appStorageDir,context);
 
         Navigator.of(context).pop(); // Dismiss loading dialog
         ScaffoldMessenger.of(context).showSnackBar(

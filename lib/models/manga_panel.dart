@@ -2,12 +2,12 @@ import 'dart:math' as math;
 import 'dart:ui';
 
 class MangaPanel {
-  final String id;
-  final double x; // Center X coordinate of the panel
-  final double y; // Center Y coordinate of the panel
-  final double width; // Total panel width
-  final double height; // Total panel height
-  final double scale; // Optional manual zoom bias multiplier
+   String id;
+   double x; // Center X coordinate of the panel
+   double y; // Center Y coordinate of the panel
+   double width; // Total panel width
+   double height; // Total panel height
+   double scale; // Optional manual zoom bias multiplier
 
   MangaPanel({
     required this.id,
@@ -41,27 +41,27 @@ class MangaPanel {
     double minScale = 0.05,
     double maxScale = 6.0,
   }) {
-    final double safePanelWidth = math.max(width, 1.0);
-    final double safePanelHeight = math.max(height, 1.0);
-    final double safeViewportWidth = math.max(viewport.width, 1.0);
-    final double safeViewportHeight = math.max(viewport.height, 1.0);
+     double safePanelWidth = math.max(width, 1.0);
+     double safePanelHeight = math.max(height, 1.0);
+     double safeViewportWidth = math.max(viewport.width, 1.0);
+     double safeViewportHeight = math.max(viewport.height, 1.0);
 
-    final double clampedPadding = paddingFraction.clamp(0.0, 0.45);
-    final double usableWidth = safeViewportWidth * (1.0 - clampedPadding);
-    final double usableHeight = safeViewportHeight * (1.0 - clampedPadding);
+     double clampedPadding = paddingFraction.clamp(0.0, 0.45);
+     double usableWidth = safeViewportWidth * (1.0 - clampedPadding);
+     double usableHeight = safeViewportHeight * (1.0 - clampedPadding);
 
-    final double fitScale = math.min(
+     double fitScale = math.min(
       usableWidth / safePanelWidth,
       usableHeight / safePanelHeight,
     );
 
-    final double orientationBias = isHorizontal
+     double orientationBias = isHorizontal
         ? 1.10
         : isVertical
         ? 0.95
         : 1.0;
 
-    final double targetScale = fitScale * orientationBias * scale;
+     double targetScale = fitScale * orientationBias * scale;
 
     return targetScale.clamp(minScale, maxScale).toDouble();
   }
