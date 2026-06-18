@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:omiku/models/manga_series.dart';
+import 'package:uuid/uuid.dart';
 
 class AddSeriesDialog extends StatefulWidget {
   final Function(MangaSeries) onSave;
 
-  const AddSeriesDialog({Key? key, required this.onSave}) : super(key: key);
+  const AddSeriesDialog({super.key, required this.onSave});
 
   @override
   _AddSeriesDialogState createState() => _AddSeriesDialogState();
@@ -32,20 +33,20 @@ class _AddSeriesDialogState extends State<AddSeriesDialog> {
                 decoration: const InputDecoration(labelText: 'Manga Title *'),
                 validator: (v) => v!.isEmpty ? 'Title required' : null,
               ),
-              TextFormField(
-                controller: _authorController,
-                decoration: const InputDecoration(labelText: 'Author'),
-              ),
-              TextFormField(
-                controller: _coverController,
-                decoration: const InputDecoration(labelText: 'Cover Path / URL *'),
-                validator: (v) => v!.isEmpty ? 'Cover location required' : null,
-              ),
-              TextFormField(
-                controller: _descController,
-                decoration: const InputDecoration(labelText: 'Description'),
-                maxLines: 3,
-              ),
+              // TextFormField(
+              //   controller: _authorController,
+              //   decoration: const InputDecoration(labelText: 'Author'),
+              // ),
+              // TextFormField(
+              //   controller: _coverController,
+              //   decoration: const InputDecoration(labelText: 'Cover Path / URL *'),
+              //   validator: (v) => v!.isEmpty ? 'Cover location required' : null,
+              // ),
+              // TextFormField(
+              //   controller: _descController,
+              //   decoration: const InputDecoration(labelText: 'Description'),
+              //   maxLines: 3,
+              // ),
             ],
           ),
         ),
@@ -54,13 +55,15 @@ class _AddSeriesDialogState extends State<AddSeriesDialog> {
         TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
         ElevatedButton(
           onPressed: () {
+                  final String seriesId =  Uuid().v4();
+
             if (_formKey.currentState!.validate()) {
               final newSeries = MangaSeries(
-                id: DateTime.now().millisecondsSinceEpoch.toString(), // Quick simple ID generation
+                id: seriesId,
                 title: _titleController.text.trim(),
-                author: _authorController.text.trim().isEmpty ? 'Unknown' : _authorController.text.trim(),
-                coverPath: _coverController.text.trim(),
-                description: _descController.text.trim(),
+                // author: _authorController.text.trim().isEmpty ? 'Unknown' : _authorController.text.trim(),
+                coverPath: "",
+                // description: _descController.text.trim(),
               );
               widget.onSave(newSeries);
               Navigator.pop(context);

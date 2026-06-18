@@ -4,9 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:omiku/models/manga_series.dart';
 import 'package:omiku/providers/manga_store.dart';
 import 'package:omiku/services/extraction_service.dart';
+import 'package:omiku/widgets/add_series_dialog.dart';
 import 'package:omiku/widgets/manga_details_screen.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:uuid/uuid.dart';
+import 'package:path/path.dart' as p;
 
 class LibraryScreen extends StatefulWidget {
   const LibraryScreen({super.key});
@@ -18,12 +21,36 @@ class LibraryScreen extends StatefulWidget {
 class _LibraryScreenState extends State<LibraryScreen> {
   bool _isProcessingFile = false; // State for file picker loading
 
+  Future<MangaSeries?> onJustChap() async {
+    MangaSeries? mm;
+    void mangaSeries(MangaSeries m) {
+      mm = m;
+    }
+
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return AddSeriesDialog(onSave: mangaSeries);
+      },
+    );
+
+    return mm;
+  }
+
   Future<void> _pickAndProcessMangaFile(BuildContext context) async {
     if (_isProcessingFile) return;
 
     final result = await FilePicker.pickFiles(
       type: FileType.custom,
-      allowedExtensions: ['zip', 'cbz', 'pdf', 'epub','tar','7z','rar'], // Common archive types
+      allowedExtensions: [
+        'zip',
+        'cbz',
+        'pdf',
+        'epub',
+        'tar',
+        '7z',
+        'rar',
+      ], // Common archive types
     );
 
     if (result != null && result.files.single.path != null) {
@@ -46,13 +73,26 @@ class _LibraryScreenState extends State<LibraryScreen> {
           ),
         ),
       );
-
+      bool ojc = false;
       try {
         final File file = File(result.files.single.path!);
-        final extractionService = Provider.of<ExtractionService>(context, listen: false);
-        final appStorageDir = (await getApplicationSupportDirectory()).path; // Requires path_provider
+        if (p.extension(file.path) == "pdf" || p.extension(file.path) == "epub") {
+          ojc = true;
+        }
+        final extractionService = Provider.of<ExtractionService>(
+          context,
+          listen: false,
+        );
+        final appStorageDir = (await getApplicationSupportDirectory())
+            .path; // Requires path_provider
 
-        await extractionService.processArchive(file, appStorageDir,context);
+        await extractionService.processArchive(
+          file,
+          appStorageDir,
+          onJustChap(),
+          ojc,
+          context,
+        );
 
         Navigator.of(context).pop(); // Dismiss loading dialog
         ScaffoldMessenger.of(context).showSnackBar(
@@ -61,9 +101,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
       } catch (e) {
         debugPrint('Error processing file: $e');
         Navigator.of(context).pop(); // Dismiss loading dialog
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to add manga: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to add manga: $e')));
       } finally {
         setState(() {
           _isProcessingFile = false;
@@ -78,7 +118,10 @@ class _LibraryScreenState extends State<LibraryScreen> {
       backgroundColor: const Color(0xFF1E1E24), // Dark background
       appBar: AppBar(
         backgroundColor: const Color(0xFF1E1E24),
-        title: const Text('MangaHub', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: const Text(
+          'MangaHub',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.search, color: Colors.white),
@@ -95,7 +138,10 @@ class _LibraryScreenState extends State<LibraryScreen> {
             children: [
               // Filter Chips (mimicking the screenshot)
               Padding(
-                padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 8.0),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 16.0,
+                  horizontal: 8.0,
+                ),
                 child: SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: Row(
@@ -105,7 +151,11 @@ class _LibraryScreenState extends State<LibraryScreen> {
                       _buildFilterChip('Horror', false),
                       _buildFilterChip('Comedy', false),
                       _buildFilterChip('Romance', false),
-                      _buildFilterChip('Filter', false, icon: Icons.filter_list),
+                      _buildFilterChip(
+                        'Filter',
+                        false,
+                        icon: Icons.filter_list,
+                      ),
                     ],
                   ),
                 ),
@@ -114,19 +164,26 @@ class _LibraryScreenState extends State<LibraryScreen> {
                 child: library.isEmpty
                     ? Center(
                         child: Text(
-                          _isProcessingFile ? 'Adding manga...' : 'No manga series found.\nTap "+" to add one!',
+                          _isProcessingFile
+                              ? 'Adding manga...'
+                              : 'No manga series found.\nTap "+" to add one!',
                           textAlign: TextAlign.center,
-                          style: const TextStyle(color: Colors.white70, fontSize: 18),
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 18,
+                          ),
                         ),
                       )
                     : GridView.builder(
                         padding: const EdgeInsets.all(8.0),
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2, // Two items per row
-                          crossAxisSpacing: 16.0,
-                          mainAxisSpacing: 16.0,
-                          childAspectRatio: 0.7, // Adjust as needed for cover ratio
-                        ),
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2, // Two items per row
+                              crossAxisSpacing: 16.0,
+                              mainAxisSpacing: 16.0,
+                              childAspectRatio:
+                                  0.7, // Adjust as needed for cover ratio
+                            ),
                         itemCount: library.length,
                         itemBuilder: (context, index) {
                           final series = library[index];
@@ -139,7 +196,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
         },
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: _isProcessingFile ? null : () => _pickAndProcessMangaFile(context),
+        onPressed: _isProcessingFile
+            ? null
+            : () => _pickAndProcessMangaFile(context),
         label: _isProcessingFile
             ? const Row(
                 children: [
@@ -162,11 +221,15 @@ class _LibraryScreenState extends State<LibraryScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 4.0),
       child: ChoiceChip(
         label: Text(label),
-        avatar: icon != null ? Icon(icon, color: isSelected ? Colors.black : Colors.white70) : null,
+        avatar: icon != null
+            ? Icon(icon, color: isSelected ? Colors.black : Colors.white70)
+            : null,
         selected: isSelected,
         selectedColor: Colors.greenAccent,
-        labelStyle: TextStyle(color: isSelected ? Colors.black : Colors.white70),
-        backgroundColor: Colors.grey.withOpacity(0.3),
+        labelStyle: TextStyle(
+          color: isSelected ? Colors.black : Colors.white70,
+        ),
+        backgroundColor: Colors.grey.withValues(alpha: 0.3),
         onSelected: (selected) {
           // TODO: Implement filter logic
           debugPrint('Filter "$label" selected: $selected');
@@ -201,8 +264,11 @@ class _MangaSeriesCard extends StatelessWidget {
           children: [
             Expanded(
               child: Hero(
-                tag: 'series_cover_${series.id}', // Unique tag for Hero animation
-                child: series.coverPath.isNotEmpty && File(series.coverPath).existsSync()
+                tag:
+                    'series_cover_${series.id}', // Unique tag for Hero animation
+                child:
+                    series.coverPath.isNotEmpty &&
+                        File(series.coverPath).existsSync()
                     ? Image.file(
                         File(series.coverPath),
                         fit: BoxFit.cover,
@@ -211,7 +277,11 @@ class _MangaSeriesCard extends StatelessWidget {
                     : Container(
                         color: Colors.grey[700],
                         alignment: Alignment.center,
-                        child: const Icon(Icons.image_not_supported, color: Colors.white54, size: 50),
+                        child: const Icon(
+                          Icons.image_not_supported,
+                          color: Colors.white54,
+                          size: 50,
+                        ),
                       ),
               ),
             ),
@@ -241,4 +311,3 @@ class _MangaSeriesCard extends StatelessWidget {
     );
   }
 }
-

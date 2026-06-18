@@ -2,7 +2,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:omiku/models/manga_series.dart';
 import 'package:omiku/providers/manga_store.dart';
-import 'package:omiku/services/panel_detector_service.dart';
 import 'package:omiku/widgets/chapter_reader_screen.dart';
 import 'package:provider/provider.dart';
 
@@ -210,11 +209,11 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
                         style: const TextStyle(color: Colors.white),
                       ),
                       subtitle: Text(
-                        '${chapter.pagesData.length} pages | Panels detected: ${chapter.pagesData.every((p) => p.panelsData!.isNotEmpty) ? 'Yes' : 'No'}',
+                        '${chapter.pagesData.length} pages',
                         style: const TextStyle(color: Colors.white70),
                       ),
                       trailing: Icon(
-                             Icons.check_circle_outline,
+                             Icons.book,
                         color: 
                              Colors.green
                       ),

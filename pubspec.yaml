@@ -46,6 +46,12 @@ dependencies:
   uuid: ^4.5.3
   file_picker: ^11.0.2
   telegram_ios_ui_kit: ^2.26.0
+  vad: ^0.0.8
+  permission_handler: ^11.3.1
+  ffi: ^2.2.0
+  whisper_kit: ^0.3.1
+  audio_session: ^0.2.3
+  flutter_sound: ^9.30.0
 dev_dependencies:
   flutter_test:
     sdk: flutter

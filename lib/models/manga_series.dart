@@ -109,7 +109,7 @@ class MangaChapter {
       // Re-sort to maintain order, although pageNumber should keep them sorted
       newPagesData.sort((a, b) => a.pageNumber.compareTo(b.pageNumber));
     } else {
-      debugPrint("Warning: Page with ID ${updatedPage.pageId} not found in chapter ${id} for update.");
+      debugPrint("Warning: Page with ID ${updatedPage.pageId} not found in chapter $id for update.");
     }
     return copyWith(pagesData: newPagesData, totalPages: newPagesData.length);
   }
@@ -257,11 +257,23 @@ class MangaSeries {
       // Re-sort to maintain order if chapterNumber changed (though it shouldn't for update)
       newChapters.sort((a, b) => a.chapterNumber.compareTo(b.chapterNumber));
     } else {
-      debugPrint("Warning: Chapter with ID ${updatedChapter.id} not found in series ${id} for update.");
+      debugPrint("Warning: Chapter with ID ${updatedChapter.id} not found in series $id for update.");
     }
     return copyWith(chapters: newChapters);
   }
+// Add these inside your MangaSeries class in manga_series.dart
 
+MangaSeries removeChapter(String chapterId) {
+  final updatedChapters = chapters.where((c) => c.id != chapterId).toList();
+  return copyWith(chapters: updatedChapters);
+}
+
+MangaSeries reorderChapters() {
+  // Automatically sort chapters logically by their chapter number
+  final sorted = List<MangaChapter>.from(chapters);
+  sorted.sort((a, b) => a.chapterNumber.compareTo(b.chapterNumber));
+  return copyWith(chapters: sorted);
+}
   MangaSeries copyWith({
     String? id,
     String? title,

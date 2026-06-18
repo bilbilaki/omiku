@@ -1,12 +1,10 @@
 import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:omiku/extractor/ffibindings.dart';
 import 'package:omiku/models/manga_series.dart';
 import 'package:omiku/providers/manga_store.dart';
 import 'package:omiku/services/panel_detector_service.dart';
 import 'package:path/path.dart' as p;
-import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 // import 'package:uuid/uuid.dart'; // Already imported above
 
@@ -21,17 +19,25 @@ class ExtractionService {
   Future<void> processArchive(
     File archiveFile,
     String appStorageDir,
+    Future<MangaSeries?> onJustChap,
+    bool usedOJC,
     BuildContext context,
   ) async {
     // 1. Enforce App-Sandbox output target location
     // This gives your native code explicit permission to write locally
     final String extractionRoot = p.join(appStorageDir, 'ExtractedMedia');
-
+    late MangaSeries ms;
     // Create a unique series ID and directory name
     final String seriesId = const Uuid().v4();
     final String seriesFolderName = "${p.basename(archiveFile.path)}-extracted";
     final String expectedFinalPath = p.join(extractionRoot, seriesFolderName);
-
+    if (usedOJC) {
+      var mss = await onJustChap;
+      if (mss != null) {
+        ms = mss;
+      } else {
+      }
+    }
     debugPrint("Triggering Go Extraction to sandbox path: $expectedFinalPath");
 
     try {
@@ -105,17 +111,23 @@ class ExtractionService {
 
       // 4. Register new book profile into your Hive Provider storage state
       if (extractedChapters.isNotEmpty) {
-        final newSeries = MangaSeries(
-          id: seriesId,
-          title: p.basenameWithoutExtension(archiveFile.path),
-          coverPath: _findFirstAvailablePage(
-            extractedChapters.first.pathToChapterData,
-          ),
-          chapters: extractedChapters,
-        );
+        if (usedOJC) {
+          for (final ch in extractedChapters) {
+            _mangaStore.addChapterToSeries(ms.id, ch);
+          }
+        } else {
+          final newSeries = MangaSeries(
+            id: seriesId,
+            title: p.basenameWithoutExtension(archiveFile.path),
+            coverPath: _findFirstAvailablePage(
+              extractedChapters.first.pathToChapterData,
+            ),
+            chapters: extractedChapters,
+          );
 
-        _mangaStore.addMangaSeries(newSeries);
-        debugPrint("Successfully added ${newSeries.title} to storage!");
+          _mangaStore.addMangaSeries(newSeries);
+          debugPrint("Successfully added ${newSeries.title} to storage!");
+        }
       }
     } catch (e) {
       debugPrint("Error handling extraction routine: $e");
@@ -169,9 +181,7 @@ class ExtractionService {
     });
 
     for (int i = 0; i < imageFiles.length; i++) {
-      var panels = await panelDetectionService.pickAndDetect(
-        imageFiles[i],
-      );
+      var panels = await panelDetectionService.pickAndDetect(imageFiles[i]);
 
       pages.add(
         ChapterPage(

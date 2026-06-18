@@ -303,17 +303,20 @@ class MangaReaderScreenState extends State<MangaReaderScreen>
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                IconButton(
-                  hoverColor: Colors.black54,
-                  icon: const Icon(Icons.arrow_back, color: Color.fromARGB(255, 51, 51, 51)),
+                FloatingActionButton.extended(
                   onPressed: _pervStep,
+                  label: Text(
+                    _currentStep - (widget.detectedPanels.length - 1)==0
+                        ? '<<<'
+                        : '<',
+                  ),
                 ),
                 FloatingActionButton.extended(
                   onPressed: _nextStep,
                   label: Text(
                     _currentStep == widget.detectedPanels.length - 1
-                        ? 'End of Page'
-                        : 'Next Panel',
+                        ? '>>>'
+                        : '>',
                   ),
                 ),
               ],

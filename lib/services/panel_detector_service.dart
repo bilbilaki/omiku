@@ -2,9 +2,8 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:omiku/models/manga_panel.dart';
-import 'package:omiku/models/manga_series.dart';
 import 'package:ultralytics_yolo/ultralytics_yolo.dart';
-import 'package:uuid/uuid.dart'; // For panel IDs
+// For panel IDs
 
 class PanelDetectionService {
   YOLO? _yolo;

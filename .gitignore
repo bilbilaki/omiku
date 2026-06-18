@@ -32,7 +32,7 @@ migrate_working_dir/
 .pub/
 /build/
 /coverage/
-
+assets/models/*.bin
 # Symbolication related
 app.*.symbols
 
