@@ -130,6 +130,7 @@ extern void UnepubN(Dart_Port port, char* filePath, char* targetPath);
 extern void UnpdfN(Dart_Port port, char* filePath, char* targetPath);
 extern void UntarN(Dart_Port port, char* filePath, char* targetPath);
 extern void StartExtractionSeriesArchive(Dart_Port port, char* archivePath, char* pPath, char* seriesId);
+extern void StartExtraction(Dart_Port port, char* archivePath, char* pPath);
 extern void StartExtractionChapter(Dart_Port port, char* filePathC, char* pPath, char* seriesId, int* chapterNumber);
 
 #ifdef __cplusplus

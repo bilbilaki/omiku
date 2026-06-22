@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'dart:ffi';
 import 'dart:isolate';
 import 'package:ffi/ffi.dart';
-import 'package:omiku/myanime/myanime_models.dart';
+import 'package:omiku/models/models.dart';
 
 typedef InitializeDartAPIC =
     Void Function(

@@ -3092,19 +3092,25 @@ const MangaSeriesSchema = CollectionSchema(
       name: r'description',
       type: IsarType.string,
     ),
-    r'progress': PropertySchema(
+    r'metadata': PropertySchema(
       id: 3,
+      name: r'metadata',
+      type: IsarType.object,
+      target: r'MetaData',
+    ),
+    r'progress': PropertySchema(
+      id: 4,
       name: r'progress',
       type: IsarType.object,
       target: r'IsarUserProgress',
     ),
     r'seriesId': PropertySchema(
-      id: 4,
+      id: 5,
       name: r'seriesId',
       type: IsarType.string,
     ),
     r'title': PropertySchema(
-      id: 5,
+      id: 6,
       name: r'title',
       type: IsarType.string,
     )
@@ -3164,7 +3170,19 @@ const MangaSeriesSchema = CollectionSchema(
       linkName: r'seriesLink',
     )
   },
-  embeddedSchemas: {r'IsarUserProgress': IsarUserProgressSchema},
+  embeddedSchemas: {
+    r'IsarUserProgress': IsarUserProgressSchema,
+    r'MetaData': MetaDataSchema,
+    r'MovieDetail': MovieDetailSchema,
+    r'Genre': GenreSchema,
+    r'ProductionCompany': ProductionCompanySchema,
+    r'ProductionCountry': ProductionCountrySchema,
+    r'SpokenLanguage': SpokenLanguageSchema,
+    r'Keyword': KeywordSchema,
+    r'MovieCredits': MovieCreditsSchema,
+    r'Cast': CastSchema,
+    r'Crew': CrewSchema
+  },
   getId: _mangaSeriesGetId,
   getLinks: _mangaSeriesGetLinks,
   attach: _mangaSeriesAttach,
@@ -3180,6 +3198,13 @@ int _mangaSeriesEstimateSize(
   bytesCount += 3 + object.author.length * 3;
   bytesCount += 3 + object.coverPath.length * 3;
   bytesCount += 3 + object.description.length * 3;
+  {
+    final value = object.metadata;
+    if (value != null) {
+      bytesCount += 3 +
+          MetaDataSchema.estimateSize(value, allOffsets[MetaData]!, allOffsets);
+    }
+  }
   {
     final value = object.progress;
     if (value != null) {
@@ -3202,14 +3227,20 @@ void _mangaSeriesSerialize(
   writer.writeString(offsets[0], object.author);
   writer.writeString(offsets[1], object.coverPath);
   writer.writeString(offsets[2], object.description);
-  writer.writeObject<IsarUserProgress>(
+  writer.writeObject<MetaData>(
     offsets[3],
+    allOffsets,
+    MetaDataSchema.serialize,
+    object.metadata,
+  );
+  writer.writeObject<IsarUserProgress>(
+    offsets[4],
     allOffsets,
     IsarUserProgressSchema.serialize,
     object.progress,
   );
-  writer.writeString(offsets[4], object.seriesId);
-  writer.writeString(offsets[5], object.title);
+  writer.writeString(offsets[5], object.seriesId);
+  writer.writeString(offsets[6], object.title);
 }
 
 MangaSeries _mangaSeriesDeserialize(
@@ -3223,13 +3254,18 @@ MangaSeries _mangaSeriesDeserialize(
   object.coverPath = reader.readString(offsets[1]);
   object.description = reader.readString(offsets[2]);
   object.id = id;
-  object.progress = reader.readObjectOrNull<IsarUserProgress>(
+  object.metadata = reader.readObjectOrNull<MetaData>(
     offsets[3],
+    MetaDataSchema.deserialize,
+    allOffsets,
+  );
+  object.progress = reader.readObjectOrNull<IsarUserProgress>(
+    offsets[4],
     IsarUserProgressSchema.deserialize,
     allOffsets,
   );
-  object.seriesId = reader.readString(offsets[4]);
-  object.title = reader.readString(offsets[5]);
+  object.seriesId = reader.readString(offsets[5]);
+  object.title = reader.readString(offsets[6]);
   return object;
 }
 
@@ -3247,14 +3283,20 @@ P _mangaSeriesDeserializeProp<P>(
     case 2:
       return (reader.readString(offset)) as P;
     case 3:
+      return (reader.readObjectOrNull<MetaData>(
+        offset,
+        MetaDataSchema.deserialize,
+        allOffsets,
+      )) as P;
+    case 4:
       return (reader.readObjectOrNull<IsarUserProgress>(
         offset,
         IsarUserProgressSchema.deserialize,
         allOffsets,
       )) as P;
-    case 4:
-      return (reader.readString(offset)) as P;
     case 5:
+      return (reader.readString(offset)) as P;
+    case 6:
       return (reader.readString(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -4204,6 +4246,24 @@ extension MangaSeriesQueryFilter
   }
 
   QueryBuilder<MangaSeries, MangaSeries, QAfterFilterCondition>
+      metadataIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'metadata',
+      ));
+    });
+  }
+
+  QueryBuilder<MangaSeries, MangaSeries, QAfterFilterCondition>
+      metadataIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'metadata',
+      ));
+    });
+  }
+
+  QueryBuilder<MangaSeries, MangaSeries, QAfterFilterCondition>
       progressIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
@@ -4491,6 +4551,13 @@ extension MangaSeriesQueryFilter
 
 extension MangaSeriesQueryObject
     on QueryBuilder<MangaSeries, MangaSeries, QFilterCondition> {
+  QueryBuilder<MangaSeries, MangaSeries, QAfterFilterCondition> metadata(
+      FilterQuery<MetaData> q) {
+    return QueryBuilder.apply(this, (query) {
+      return query.object(q, r'metadata');
+    });
+  }
+
   QueryBuilder<MangaSeries, MangaSeries, QAfterFilterCondition> progress(
       FilterQuery<IsarUserProgress> q) {
     return QueryBuilder.apply(this, (query) {
@@ -4762,6 +4829,12 @@ extension MangaSeriesQueryProperty
   QueryBuilder<MangaSeries, String, QQueryOperations> descriptionProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'description');
+    });
+  }
+
+  QueryBuilder<MangaSeries, MetaData?, QQueryOperations> metadataProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'metadata');
     });
   }
 
@@ -38092,7 +38165,12 @@ int _metaDataEstimateSize(
               value, allOffsets[MovieCredits]!, allOffsets);
     }
   }
-  bytesCount += 3 + object.description.length * 3;
+  {
+    final value = object.description;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   bytesCount += 3 + object.genres.length * 3;
   {
     for (var i = 0; i < object.genres.length; i++) {
@@ -38159,7 +38237,7 @@ MetaData _metaDataDeserialize(
     MovieCreditsSchema.deserialize,
     allOffsets,
   );
-  object.description = reader.readString(offsets[3]);
+  object.description = reader.readStringOrNull(offsets[3]);
   object.genres = reader.readStringList(offsets[4]) ?? [];
   object.movieDetail = reader.readObjectOrNull<MovieDetail>(
     offsets[5],
@@ -38189,7 +38267,7 @@ P _metaDataDeserializeProp<P>(
         allOffsets,
       )) as P;
     case 3:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 4:
       return (reader.readStringList(offset) ?? []) as P;
     case 5:
@@ -38668,8 +38746,25 @@ extension MetaDataQueryFilter
     });
   }
 
+  QueryBuilder<MetaData, MetaData, QAfterFilterCondition> descriptionIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'description',
+      ));
+    });
+  }
+
+  QueryBuilder<MetaData, MetaData, QAfterFilterCondition>
+      descriptionIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'description',
+      ));
+    });
+  }
+
   QueryBuilder<MetaData, MetaData, QAfterFilterCondition> descriptionEqualTo(
-    String value, {
+    String? value, {
     bool caseSensitive = true,
   }) {
     return QueryBuilder.apply(this, (query) {
@@ -38683,7 +38778,7 @@ extension MetaDataQueryFilter
 
   QueryBuilder<MetaData, MetaData, QAfterFilterCondition>
       descriptionGreaterThan(
-    String value, {
+    String? value, {
     bool include = false,
     bool caseSensitive = true,
   }) {
@@ -38698,7 +38793,7 @@ extension MetaDataQueryFilter
   }
 
   QueryBuilder<MetaData, MetaData, QAfterFilterCondition> descriptionLessThan(
-    String value, {
+    String? value, {
     bool include = false,
     bool caseSensitive = true,
   }) {
@@ -38713,8 +38808,8 @@ extension MetaDataQueryFilter
   }
 
   QueryBuilder<MetaData, MetaData, QAfterFilterCondition> descriptionBetween(
-    String lower,
-    String upper, {
+    String? lower,
+    String? upper, {
     bool includeLower = true,
     bool includeUpper = true,
     bool caseSensitive = true,

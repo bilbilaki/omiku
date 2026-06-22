@@ -33,9 +33,12 @@ migrate_working_dir/
 /build/
 /coverage/
 assets/models/*.bin
+lib/env.dart
+/lib/env.dart
+**/env.**
 # Symbolication related
 app.*.symbols
-
+C:/Users/esil/Documents/workspace/omiku/lib/env.dart
 # Obfuscation related
 app.*.map.json
 

@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide MetaData;
 import 'package:omiku/extractor/ffibindings.dart';
 import 'package:omiku/main.dart';
 import 'package:omiku/models/models.dart';
@@ -22,7 +22,6 @@ class ExtractionService {
   Future<void> processArchive(
     File archiveFile,
     String appStorageDir,
-    VoidCallback onDone,
     BuildContext context,
   ) async {
     // 1. Enforce App-Sandbox output target location
@@ -113,7 +112,25 @@ class ExtractionService {
         pp.lastReadAt = DateTime(0);
         pp.lastReadChapterId = '';
         pp.lastReadPage = 0;
+        MetaData? md = MetaData();
+        md.title = p.basenameWithoutExtension(archiveFile.path);
+        md.backgrounds = [];
+        md.covers = [];
+        md.credits = null;
+        md.genres = [];
+        md.malAlterTiles = null;
+        md.malMainPic = null;
+        md.malRecommand = null;
+        md.malSeriesDetail = null;
+        md.malStudio = null;
+        md.mangaCoverImage = null;
+        md.mangaData = null;
+        md.mangaMedia = null;
+        md.mangaTitles = null;
+        md.movieDetail = null;
+        md.tags = [];
         MangaSeries ms = MangaSeries();
+        ms.metadata = md;
         ms.seriesId = seriesId;
         ms.title = p.basenameWithoutExtension(archiveFile.path);
         ms.coverPath = _findFirstAvailablePage(
@@ -132,7 +149,317 @@ class ExtractionService {
         onToppedId = ms.id;
 
         debugPrint("Successfully added ${newSeries.title} to storage!");
-        onDone();
+      }
+    } catch (e) {
+      debugPrint("Error handling extraction routine: $e");
+      rethrow;
+    }
+  }
+
+  Future<void> extractSeries(
+    File archiveFile,
+    String appStorageDir,
+    BuildContext context,
+  ) async {
+    // 1. Enforce App-Sandbox output target location
+    // This gives your native code explicit permission to write locally
+    final String extractionRoot = p.join(appStorageDir, 'ExtractedMedia');
+    // Create a unique series ID and directory name
+    final String seriesId = const Uuid().v4();
+    final String expectedFinalPath = p.join(extractionRoot, seriesId);
+    debugPrint("Triggering Go Extraction to sandbox path: $expectedFinalPath");
+
+    try {
+      // 2. Fire Go extractor stream listener
+      final Stream<String> logStream = _extractor.autoExtractSeries(
+        archiveFile.path,
+        extractionRoot,
+        seriesId,
+      );
+
+      await for (final log in logStream) {
+        debugPrint("[Go Native Log]: $log");
+
+        // Handle explicit exceptions bubble up from the Go runtime
+        if (log.startsWith("ERROR") || log.contains("failed")) {
+          throw Exception("Native Extraction Failed: $log");
+        }
+        if (log.contains("finish")) {
+          debugPrint("Go extraction signaled finish. Exiting log stream loop.");
+          break;
+        }
+      }
+
+      // 3. Post-Extraction: Scan the output directory structure to build models
+      final targetDirectory = Directory(expectedFinalPath);
+      if (!await targetDirectory.exists()) {
+        throw Exception(
+          "Extraction completed but target folder does not exist.",
+        );
+      }
+
+      // Check if it's a direct format (.cbz, single pdf/epub) or a container bundle
+      List<MangaChapter> extractedChapters = [];
+      final df = Directory(expectedFinalPath).listSync();
+      for (final ft in df) {
+        if (ft is Directory) {
+          if (p.basename(ft.path).startsWith("ch-")) {
+            extractedChapters.addAll(
+              await _mapSubfoldersToChapters(seriesId, ft, context),
+            );
+          }
+        }
+      }
+      // final nestedPdfs = Directory(p.join(expectedFinalPath, 'extracted-pdfs'));
+      // final nestedEpubs = Directory(
+      //   p.join(expectedFinalPath, 'extracted-epubs'),
+      // );
+
+      // if (await nestedPdfs.exists()) {
+      //   extractedChapters.addAll(
+      //     await _mapSubfoldersToChapters(seriesId, nestedPdfs, context),
+      //   ); // Pass seriesId
+      // }
+      // if (await nestedEpubs.exists()) {
+      //   extractedChapters.addAll(
+      //     await _mapSubfoldersToChapters(seriesId, nestedEpubs, context),
+      //   ); // Pass seriesId
+      // }
+
+      // If no subfolders exist, it was a standalone book (.cbz/.pdf/.epub)
+      if (extractedChapters.isEmpty) {
+        final String chapterId = const Uuid().v4();
+        List<ChapterPage> pages = await _getChapterPages(
+          seriesId,
+          chapterId,
+          targetDirectory.path,
+        ); // Get pages
+        MangaChapter mc = MangaChapter();
+        mc.chapterId = chapterId;
+        mc.seriesId = seriesId;
+        mc.title = p.basenameWithoutExtension(archiveFile.path);
+        mc.chapterNumber = 1.0;
+        mc.pathToChapterData = expectedFinalPath;
+        mc.totalPages = pages.length;
+
+        mc.pages.addAll(pages);
+        await db.put<MangaChapter>(mc);
+        await db.saveChapterWithPages(mc, pages);
+        onToppedChId = mc.id;
+
+        extractedChapters.add(mc);
+      }
+
+      // 4. Register new book profile into your Hive Provider storage state
+      if (extractedChapters.isNotEmpty) {
+        IsarUserProgress pp = IsarUserProgress();
+        pp.isBookmarked = false;
+        pp.isLiked = false;
+        pp.lastReadAt = DateTime(0);
+        pp.lastReadChapterId = '';
+        pp.lastReadPage = 0;
+  MetaData? md = MetaData();
+        md.title = p.basenameWithoutExtension(archiveFile.path);
+        md.backgrounds = [];
+        md.covers = [];
+        md.credits = null;
+        md.genres = [];
+        md.malAlterTiles = null;
+        md.malMainPic = null;
+        md.malRecommand = null;
+        md.malSeriesDetail = null;
+        md.malStudio = null;
+        md.mangaCoverImage = null;
+        md.mangaData = null;
+        md.mangaMedia = null;
+        md.mangaTitles = null;
+        md.movieDetail = null;
+        md.tags = [];
+                MangaSeries ms = MangaSeries();
+        ms.metadata = md;
+        ms.seriesId = seriesId;
+        ms.title = p.basenameWithoutExtension(archiveFile.path);
+        ms.coverPath = _findFirstAvailablePage(
+          extractedChapters.first.pathToChapterData,
+        );
+
+        ms.author = 'unknown';
+        ms.description = 'still no discription exist';
+        ms.progress = pp;
+        ms.chapters.addAll(extractedChapters);
+        await db.saveMangaWithChapters(ms, extractedChapters);
+
+        await db.put<MangaSeries>(ms);
+        final newSeries = ms;
+        onToppedCover = ms.coverPath;
+        onToppedId = ms.id;
+
+        debugPrint("Successfully added ${newSeries.title} to storage!");
+      }
+    } catch (e) {
+      debugPrint("Error handling extraction routine: $e");
+      rethrow;
+    }
+  }
+
+  Future<void> extractSinglePathToPath(
+    File archiveFile,
+    String appStorageDir,
+    int chapternum,
+    BuildContext context,
+  ) async {
+    // 1. Enforce App-Sandbox output target location
+    // This gives your native code explicit permission to write locally
+    final exti = p.extension(archiveFile.path);
+    final String extractionRoot = p.join(appStorageDir, 'ExtractedMedia');
+    // Create a unique series ID and directory name
+    final String seriesId = const Uuid().v4();
+    final String expectedFinalPath = p.join(
+      extractionRoot,
+      seriesId,
+      "ch-$chapternum",
+    );
+    debugPrint("Triggering Go Extraction to sandbox path: $expectedFinalPath");
+
+    try {
+      Stream<String> logStream;
+      // 2. Fire Go extractor stream listener
+      if (exti.toLowerCase() == ".pdf") {
+        logStream = _extractor.extractPdf(archiveFile.path, extractionRoot);
+      } else if (exti.toLowerCase() == ".cbz") {
+        logStream = _extractor.extractCbz(archiveFile.path, extractionRoot);
+      } else if (exti.toLowerCase() == ".epub") {
+        logStream = _extractor.extractEpub(archiveFile.path, extractionRoot);
+      } else if (exti.toLowerCase() == ".tar") {
+        logStream = _extractor.extractTar(archiveFile.path, extractionRoot);
+      } else if (exti.toLowerCase() == ".rar" ||
+          exti.toLowerCase() == ".7z" ||
+          exti.toLowerCase() == ".zip") {
+        logStream = _extractor.extractArchiveS(
+          archiveFile.path,
+          extractionRoot,
+        );
+
+        await for (final log in logStream) {
+          debugPrint("[Go Native Log]: $log");
+
+          // Handle explicit exceptions bubble up from the Go runtime
+          if (log.startsWith("ERROR") || log.contains("failed")) {
+            throw Exception("Native Extraction Failed: $log");
+          }
+          if (log.contains("finish")) {
+            debugPrint(
+              "Go extraction signaled finish. Exiting log stream loop.",
+            );
+            break;
+          }
+        }
+
+        // 3. Post-Extraction: Scan the output directory structure to build models
+        final targetDirectory = Directory(expectedFinalPath);
+        if (!await targetDirectory.exists()) {
+          throw Exception(
+            "Extraction completed but target folder does not exist.",
+          );
+        }
+
+        // Check if it's a direct format (.cbz, single pdf/epub) or a container bundle
+        List<MangaChapter> extractedChapters = [];
+        // final df = Directory(expectedFinalPath).listSync();
+        // for (final ft in df) {
+        //   if (ft is Directory) {
+        //     if (p.basename(ft.path).startsWith("ch-")){
+        //   extractedChapters.addAll(
+        //     await _mapSubfoldersToChapters(seriesId, ft, context),
+        //   );
+        //     }
+        //   }
+        // }
+        // // final nestedPdfs = Directory(p.join(expectedFinalPath, 'extracted-pdfs'));
+        // final nestedEpubs = Directory(
+        //   p.join(expectedFinalPath, 'extracted-epubs'),
+        // );
+
+        // if (await nestedPdfs.exists()) {
+        //   extractedChapters.addAll(
+        //     await _mapSubfoldersToChapters(seriesId, nestedPdfs, context),
+        //   ); // Pass seriesId
+        // }
+        // if (await nestedEpubs.exists()) {
+        //   extractedChapters.addAll(
+        //     await _mapSubfoldersToChapters(seriesId, nestedEpubs, context),
+        //   ); // Pass seriesId
+        // }
+
+        // If no subfolders exist, it was a standalone book (.cbz/.pdf/.epub)
+        // if (extractedChapters.isEmpty) {
+        final String chapterId = const Uuid().v4();
+        List<ChapterPage> pages = await _getChapterPages(
+          seriesId,
+          chapterId,
+          targetDirectory.path,
+        ); // Get pages
+        MangaChapter mc = MangaChapter();
+        mc.chapterId = chapterId;
+        mc.seriesId = seriesId;
+        mc.title = p.basenameWithoutExtension(archiveFile.path);
+        mc.chapterNumber = chapternum.toDouble();
+        mc.pathToChapterData = expectedFinalPath;
+        mc.totalPages = pages.length;
+
+        mc.pages.addAll(pages);
+        await db.put<MangaChapter>(mc);
+        await db.saveChapterWithPages(mc, pages);
+        onToppedChId = mc.id;
+
+        extractedChapters.add(mc);
+        //}
+
+        // 4. Register new book profile into your Hive Provider storage state
+        if (extractedChapters.isNotEmpty) {
+          IsarUserProgress pp = IsarUserProgress();
+          pp.isBookmarked = false;
+          pp.isLiked = false;
+          pp.lastReadAt = DateTime(0);
+          pp.lastReadChapterId = '';
+          pp.lastReadPage = 0;
+  MetaData? md = MetaData();
+        md.title = p.basenameWithoutExtension(archiveFile.path);
+        md.backgrounds = [];
+        md.covers = [];
+        md.credits = null;
+        md.genres = [];
+        md.malAlterTiles = null;
+        md.malMainPic = null;
+        md.malRecommand = null;
+        md.malSeriesDetail = null;
+        md.malStudio = null;
+        md.mangaCoverImage = null;
+        md.mangaData = null;
+        md.mangaMedia = null;
+        md.mangaTitles = null;
+        md.movieDetail = null;
+        md.tags = [];          MangaSeries ms = MangaSeries();
+          ms.metadata = md;
+          ms.seriesId = seriesId;
+          ms.title = p.basenameWithoutExtension(archiveFile.path);
+          ms.coverPath = _findFirstAvailablePage(
+            extractedChapters.first.pathToChapterData,
+          );
+
+          ms.author = 'unknown';
+          ms.description = 'still no discription exist';
+          ms.progress = pp;
+          ms.chapters.addAll(extractedChapters);
+          await db.saveMangaWithChapters(ms, extractedChapters);
+
+          await db.put<MangaSeries>(ms);
+          final newSeries = ms;
+          onToppedCover = ms.coverPath;
+          onToppedId = ms.id;
+
+          debugPrint("Successfully added ${newSeries.title} to storage!");
+        }
       }
     } catch (e) {
       debugPrint("Error handling extraction routine: $e");
@@ -230,7 +557,8 @@ class ExtractionService {
 
     double chapterIndex = 1.0;
     for (var entity in entities) {
-      if (entity is Directory && entity.path.endsWith('-extracted')) {
+      if (entity is Directory && entity.path.endsWith('-extracted') ||
+          entity is Directory && entity.path.startsWith('ch-')) {
         String chapterId = const Uuid().v4(); // Generate chapter ID here
         List<ChapterPage> pages = await _getChapterPages(
           seriesId,
