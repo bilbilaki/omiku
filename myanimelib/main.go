@@ -1,4 +1,5 @@
 package main
+
 /*
 #include <stdint.h>
 #include <stdbool.h>
@@ -42,9 +43,9 @@ import "C"
 import (
 	"encoding/json"
 	"fmt"
-		"unsafe"
-
+	"unsafe"
 )
+
 var dartPostCObject C.Dart_PostCObject_Type
 
 //export InitializeDartAPI
@@ -60,11 +61,31 @@ func InitGuestClient() {
 	guestClient = NewMALGuestClient()
 }
 
+//export NativeSearchMangaAniList
+func NativeSearchMangaAniList(port C.Dart_Port, queryi *C.char) {
+	query := C.GoString(queryi)
+	if guestClient == nil {
+		InitGuestClient()
+	}
+	go func(q string) {
+		jsonResp, err := guestClient.SearchMangaAniList(q)
+		if err != nil {
+			sendLog(port, fmt.Sprintf(`{"error": "%s"}`, err.Error()))
+		}
+		fresp, err := json.Marshal(jsonResp)
+		if err != nil {
+			sendLog(port, fmt.Sprintf(`{"error": "%s"}`, err.Error()))
+		}
+		sendLog(port, string(fresp))
+		sendLog(port, "done")
+
+	}(query)
+}
+
 //export NativeSearchAnime
-func NativeSearchAnime(port C.Dart_Port ,query *C.char, limit C.int) {
+func NativeSearchAnime(port C.Dart_Port, query *C.char, limit C.int) {
 	quer := C.GoString(query)
 	li := int(limit)
-
 
 	if guestClient == nil {
 		// Auto-initialize if Flutter didn't call InitGuestClient yet
@@ -72,19 +93,19 @@ func NativeSearchAnime(port C.Dart_Port ,query *C.char, limit C.int) {
 	}
 	go func(q string, l int) {
 
-	jsonResponse, err := guestClient.SearchAnime(q, l)
+		jsonResponse, err := guestClient.SearchAnime(q, l)
 
-	if err != nil {
-		sendLog(port,fmt.Sprintf(`{"error": "%s"}`, err.Error()))
-	}
-fresp ,err:=	json.Marshal(jsonResponse)	
+		if err != nil {
+			sendLog(port, fmt.Sprintf(`{"error": "%s"}`, err.Error()))
+		}
+		fresp, err := json.Marshal(jsonResponse)
 
-	if err != nil {
-		 sendLog(port,fmt.Sprintf(`{"error": "%s"}`, err.Error()))
-	}
+		if err != nil {
+			sendLog(port, fmt.Sprintf(`{"error": "%s"}`, err.Error()))
+		}
 
-	sendLog(port,string(fresp))
-	sendLog(port,"done") 
+		sendLog(port, string(fresp))
+		sendLog(port, "done")
 	}(quer, li)
 
 }
@@ -129,6 +150,5 @@ func sendLog(port C.Dart_Port, message string) {
 	C.CallDartPostCObject(dartPostCObject, port, &cobj)
 	C.free(unsafe.Pointer(cStr))
 }
-
 
 func main() {}

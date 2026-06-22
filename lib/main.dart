@@ -1,17 +1,14 @@
-import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:hive_ce_flutter/hive_flutter.dart';
-import 'package:omiku/providers/manga_store.dart';
+import 'package:media_kit/media_kit.dart';
+import 'package:omiku/services/database.dart';
 import 'package:omiku/services/panel_detector_service.dart';
 import 'package:omiku/widgets/manga_library.dart';
-import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 // import 'package:omiku/models/panel_debug_painter.dart'; // REMOVED: Not needed in final reader
 // import 'package:omiku/widgets/manga_reader.dart'; // Replaced by our new screens and modified reader
 import 'package:provider/provider.dart';
 import 'package:telegram_ios_ui_kit/telegram_ios_ui_kit.dart';
-import 'package:flutter/services.dart';
 // import 'package:ultralytics_yolo/ultralytics_yolo.dart'; // Handled by PanelDetectionService
 // import 'package:image_picker/image_picker.dart'; // Handled by LibraryScreen
 
@@ -26,14 +23,12 @@ import 'package:uuid/uuid.dart';
 Uuid uuid = Uuid();
 String appSupportDir = '';
 String appCacheDir = '';
+late DatabaseService db;
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // Initialize Hive
-  await Hive.initFlutter();
-
-  // Open a storage box specifically for app configurations/state
-  await Hive.openBox('manga_store_box');
+  MediaKit.ensureInitialized();
+  await DatabaseService().init();
+  db = DatabaseService();
   final telegramTheme = TelegramThemeData.dark();
 
   // Create PanelDetectionService instance once
@@ -42,25 +37,14 @@ Future<void> main() async {
   appSupportDir = appSupport.path;
   final appCache = await getApplicationCacheDirectory();
   appCacheDir = appCache.path;
-  final d = await rootBundle.load("assets/models/gglm-base.bin");
-  final m = p.join(appSupportDir, "gglm-base.bin");
-  final f = File(m);
-  if (!f.existsSync()) {
-    f.createSync();
-    f.writeAsBytesSync(d.buffer.asUint8List());
-  }
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (context) => MangaStore()),
         // Provide the PanelDetectionService. It manages its own YOLO loading.
         Provider<PanelDetectionService>(
           create: (context) => panelDetectionService,
         ),
-        // Provide the ExtractionService, injecting MangaStore and PanelDetectionService
-        Provider<ExtractionService>(
-          create: (context) => ExtractionService(context.read<MangaStore>()),
-        ),
+        Provider<ExtractionService>(create: (context) => ExtractionService()),
       ],
       child: TelegramTheme(
         data: telegramTheme,

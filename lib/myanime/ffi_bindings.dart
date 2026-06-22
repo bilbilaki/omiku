@@ -20,11 +20,14 @@ typedef NativeSearchAnimeD =
 
 typedef NativeDetailC = Void Function(Int64 port, Int32 animeId);
 typedef NativeDetailD = void Function(int port, int animeId);
+typedef NativeGetMangaC = Void Function(Int64 port, Pointer<Utf8> query);
+typedef NativeGetMangaD = void Function(int port, Pointer<Utf8> query);
 
 class MalNativeClient {
   late DynamicLibrary _lib;
   late NativeDetailD _nativeAnimeDetail;
   late NativeSearchAnimeD _nativeSearchAnime;
+  late NativeGetMangaD _nativeGetManga;
 
   MalNativeClient() {
     // Open the compiled binary
@@ -39,6 +42,9 @@ class MalNativeClient {
     _nativeSearchAnime = _lib
         .lookup<NativeFunction<NativeSearchAnimeC>>("NativeSearchAnime")
         .asFunction<NativeSearchAnimeD>();
+    _nativeGetManga = _lib
+        .lookup<NativeFunction<NativeGetMangaC>>("NativeSearchMangaAniList")
+        .asFunction<NativeGetMangaD>();
 
     initApi(NativeApi.postCObject.cast());
   }
@@ -63,7 +69,6 @@ class MalNativeClient {
     _nativeAnimeDetail(nativePort, animeId);
 
     receivePort.listen((message) {
-      
       if (message == "done") {
         receivePort.close();
         try {
@@ -84,7 +89,7 @@ class MalNativeClient {
   }
 
   Future<GetAnimeListResult> searchAnime(String query, {int limit = 100}) {
-        final completer = Completer<GetAnimeListResult>();
+    final completer = Completer<GetAnimeListResult>();
 
     final receivePort = ReceivePort();
     final nativePort = receivePort.sendPort.nativePort;
@@ -94,11 +99,11 @@ class MalNativeClient {
     final limiti = limit.toInt();
     _nativeSearchAnime(nativePort, queryi, limiti);
 
-     receivePort.listen((message) {
+    receivePort.listen((message) {
       if (message == "done") {
         malloc.free(queryi);
         receivePort.close();
-          try {
+        try {
           final parsedJson = jsonDecode(responseBuffer.toString());
           completer.complete(parsedJson);
         } catch (e) {
@@ -108,8 +113,36 @@ class MalNativeClient {
         // Append chunks or status payloads
         responseBuffer.write(message);
       }
-      });
-      return completer.future;
-    
+    });
+    return completer.future;
   }
+  Future<GetMangaResult> searchManga(String query) {
+    final completer = Completer<GetMangaResult>();
+
+    final receivePort = ReceivePort();
+    final nativePort = receivePort.sendPort.nativePort;
+    StringBuffer responseBuffer = StringBuffer();
+
+    final queryi = query.toNativeUtf8();
+
+    _nativeGetManga(nativePort, queryi);
+
+    receivePort.listen((message) {
+      if (message == "done") {
+        malloc.free(queryi);
+        receivePort.close();
+        try {
+          final parsedJson = jsonDecode(responseBuffer.toString());
+          completer.complete(parsedJson);
+        } catch (e) {
+          completer.completeError("JSON Parsing Error from Go Layer");
+        }
+      } else {
+        // Append chunks or status payloads
+        responseBuffer.write(message);
+      }
+    });
+    return completer.future;
+  }
+
 }

@@ -24,7 +24,7 @@ android: android-arm64 android-arm64-myanimelib
 android-arm64:
 	New-Item -ItemType Directory -Force '$(ANDROID_JNILIBS_DIR)/arm64-v8a' | Out-Null; 	$$env:GOOS='android'; $$env:GOARCH='arm64'; $$env:CGO_ENABLED='1'; 	$$env:CC="C:/Users/esil/Documents/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/$(NDK_HOST_TAG)/bin/aarch64-linux-android$(ANDROID_API)-clang.cmd"; go -C '$(STATUS_DIR)' build -buildmode=c-shared -trimpath -o '$(ANDROID_JNILIBS_DIR)/arm64-v8a/libextractor.so' .
 android-arm64-myanimelib:
-	New-Item -ItemType Directory -Force '$(ANDROID_JNILIBS_DIR)/arm64-v8a' | Out-Null; 	$$env:GOOS='android'; $$env:GOARCH='arm64'; $$env:CGO_ENABLED='1'; 	$$env:CC="C:/Users/esil/Documents/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/$(NDK_HOST_TAG)/bin/aarch64-linux-android$(ANDROID_API)-clang.cmd"; go -C '$(GITWRAPPER_DIR)' build -buildmode=c-shared -trimpath -o '$(ANDROID_JNILIBS_DIR)/arm64-v8a/myanimelib.so' .
+	New-Item -ItemType Directory -Force '$(ANDROID_JNILIBS_DIR)/arm64-v8a' | Out-Null; 	$$env:GOOS='android'; $$env:GOARCH='arm64'; $$env:CGO_ENABLED='1'; 	$$env:CC="C:/Users/esil/Documents/sdk/ndk/29.0.14206865/toolchains/llvm/prebuilt/$(NDK_HOST_TAG)/bin/aarch64-linux-android$(ANDROID_API)-clang.cmd"; go -C '$(GITWRAPPER_DIR)' build -buildmode=c-shared -ldflags="-X 'main.BuildTimeClientID=${MYANIMELISTAPIKEY}'" -trimpath -o  '$(ANDROID_JNILIBS_DIR)/arm64-v8a/myanimelib.so' .
 
 list-status:
 	Write-Host 'Status native outputs:'; 	Write-Host ' $(ANDROID_JNILIBS_DIR)/arm64-v8a/myanimelib.so'; Write-Host '  $(ANDROID_JNILIBS_DIR)/arm64-v8a/libextractor.so';

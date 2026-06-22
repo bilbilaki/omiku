@@ -21,7 +21,7 @@ extern const char *_GoStringPtr(_GoString_ s);
 /* Start of preamble from import "C" comments.  */
 
 
-#line 2 "main.go"
+#line 3 "main.go"
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -125,6 +125,7 @@ extern "C" {
 
 extern void InitializeDartAPI(Dart_PostCObject_Type apiPointer);
 extern void InitGuestClient(void);
+extern void NativeSearchMangaAniList(Dart_Port port, char* queryi);
 extern void NativeSearchAnime(Dart_Port port, char* query, int limit);
 extern void NativeAnimeDetail(Dart_Port port, int animeID);
 

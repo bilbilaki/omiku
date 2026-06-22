@@ -124,7 +124,13 @@ extern "C" {
 #endif
 
 extern void InitializeDartAPI(Dart_PostCObject_Type apiPointer);
-extern void StartExtraction(Dart_Port port, char* archivePath, char* pPath);
+extern void UnarchiveN(Dart_Port port, char* filePath, char* targetPath);
+extern void UncbzN(Dart_Port port, char* filePath, char* targetPath);
+extern void UnepubN(Dart_Port port, char* filePath, char* targetPath);
+extern void UnpdfN(Dart_Port port, char* filePath, char* targetPath);
+extern void UntarN(Dart_Port port, char* filePath, char* targetPath);
+extern void StartExtractionSeriesArchive(Dart_Port port, char* archivePath, char* pPath, char* seriesId);
+extern void StartExtractionChapter(Dart_Port port, char* filePathC, char* pPath, char* seriesId, int* chapterNumber);
 
 #ifdef __cplusplus
 }

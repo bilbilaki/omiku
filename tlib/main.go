@@ -47,6 +47,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"unsafe"
@@ -63,16 +64,52 @@ var dartPostCObject C.Dart_PostCObject_Type
 func InitializeDartAPI(apiPointer C.Dart_PostCObject_Type) {
 	dartPostCObject = apiPointer
 }
+//export UnarchiveN
+func UnarchiveN(port C.Dart_Port,filePath , targetPath *C.char){
+	goFilePath := C.GoString(filePath)
+	goTargetPath := C.GoString(targetPath)
+arch,err:=	unarr.NewArchive(goFilePath)
+if err!=nil{
+	sendLog(port,err.Error())
+	return;
 
-func decomp(a *unarr.Archive, t string) error {
+}
+
+	go func(a *unarr.Archive, tpath string) {
+		err:= Unarchive(a ,tpath )
+		if err != nil {
+			sendLog(port, err.Error())
+			return;
+
+		}
+		sendLog(port,"finish")
+		return;
+	}(arch, goTargetPath)
+}
+
+func Unarchive(a *unarr.Archive, t string) error {
 	_, err := a.Extract(t)
 	if err != nil {
 		return err
 	}
 	return nil
 }
+//export UncbzN
+func UncbzN(port C.Dart_Port, filePath , targetPath *C.char){
+	goFilePath := C.GoString(filePath)
+	goTargetPath := C.GoString(targetPath)
+	go func(path,tpath string) {
+		err := Uncbz(path,tpath)
+		if err != nil {
+			sendLog(port,err.Error())
+			return;
+		}
+		sendLog(port,"finish")
+		return;
+	}(goFilePath,goTargetPath)
 
-func ExtractCBZ(source string, targetDir string) error {
+}
+func Uncbz(source string, targetDir string) error {
 	reader, err := zip.OpenReader(source)
 	if err != nil {
 		return fmt.Errorf("failed to open cbz: %w", err)
@@ -119,42 +156,92 @@ func ExtractCBZ(source string, targetDir string) error {
 	}
 	return nil
 }
+//export UnepubN
+func UnepubN(port C.Dart_Port, filePath,targetPath *C.char){
+	goFilePath := C.GoString(filePath)
+	goTargetPath := C.GoString(targetPath)
 
-func epub(fp, tp string) ([]string, error) {
+	go func(path, tpath string) {
+		err:=Unepub(path,tpath)
+		if err != nil {
+			sendLog(port , "failed to unepub files: "+path+" "+tpath)
+			return;
+		}
+		sendLog(port,"finish")
+		return;
+	}(goFilePath, goTargetPath)
+}
+func Unepub(fp, tp string) error {
 	var epath []string
 	nd, err := fitz.New(fp)
 	if err != nil {
-		return epath, err
+		return err
 	}
 	defer nd.Close()
 
 	ni := nd.NumPage()
 	err = os.MkdirAll(tp, 0755)
 	if err != nil {
-		return epath, err
+		return err
 	}
 
 	for l := 0; l < ni; l++ {
 		png, err := nd.ImagePNG(l, 100)
 		if err != nil {
-			return epath, err
+			return err
 		}
 		f := fmt.Sprintf("%s/%s.png", tp, strconv.Itoa(l))
 		ff, err := os.Create(f)
 		if err != nil {
-			return epath, err
+			return err
 		}
 		_, err = ff.Write(png)
 		ff.Close() // Ensure close inside the loop
 		if err != nil {
-			return epath, err
+			return err
 		}
 		epath = append(epath, f)
 	}
-	return epath, nil
+	return nil
 }
+//export UnpdfN
+func UnpdfN(port C.Dart_Port,filePath , targetPath *C.char){
+	goFilePath := C.GoString(filePath)
+	goTargetPath := C.GoString(targetPath)
+	go func(path,targetpath string) {
+		err:= Unpdf(path,targetpath)
+		if err != nil {
+			sendLog(port, fmt.Sprintf("failed to extract Pdf: %s", err))
+			return;
+		}
+		sendLog(port,"finish")
+	}(goFilePath,goTargetPath)
 
-func crewler(p, t string) error {
+}
+func Unpdf(p, t string) error {
+	_, err := pdf.ExtractPages(p, 100, t)
+	if err != nil {
+		return err
+	}
+	return nil
+
+}
+//export UntarN
+func UntarN(port C.Dart_Port , filePath , targetPath *C.char){
+	goFilePath := C.GoString(filePath)
+	goTargetPath := C.GoString(targetPath)
+
+	go func(path,tpath string) {
+	err:=	Untar(path, tpath)
+	if err != nil {
+		sendLog(port, fmt.Sprintf("failed to untar %s: %s", path, err.Error()))
+		return;
+	}
+	sendLog(port,"finish")
+	}(goFilePath, goTargetPath)
+
+}
+func Untar(p, t string) error {
 	f, err := os.Open(p)
 	if err != nil {
 		return err
@@ -166,19 +253,38 @@ func crewler(p, t string) error {
 	}
 	return nil
 }
+func ExtractChapterNumber(filename string) (string, bool) {
+	// Pattern breakdown:
+	// (?i)             -> Case-insensitive flag (matches ch, CH, Chapter, CHAPTER)
+	// \b(ch|chapter)\b -> Matches the word "ch" or "chapter" as a distinct word token
+	// [[:space:]*-_]* -> Matches any optional spaces, asterisks, hyphens, or underscores
+	// ([0-9]+)         -> Captures the actual chapter number (one or more digits)
+	re := regexp.MustCompile(`(?i)\b(ch|chapter)\b[[:space:]*-_]*([0-9]+)`)
 
-//export StartExtraction
-func StartExtraction(port C.Dart_Port, archivePath, pPath *C.char) {
-	// Convert C strings to Go strings safely BEFORE launching the asynchronous goroutine
+	matches := re.FindStringSubmatch(filename)
+
+	// matches[0] is the whole matched string
+	// matches[1] is the prefix (ch/chapter)
+	// matches[2] is our target capture group (the number)
+	if len(matches) > 2 {
+		return matches[2], true
+	}
+
+	return "", false
+}
+
+//export StartExtractionSeriesArchive
+func StartExtractionSeriesArchive(port C.Dart_Port, archivePath, pPath, seriesId *C.char) {
 	goPath := C.GoString(archivePath)
 	goPPath := C.GoString(pPath)
+	goId := C.GoString(seriesId)
 
-	go func(p, pp string) {
+	go func(p, pp, id string) {
 		sendLog(port, "extracting task started...")
 
 		// Clean up and define primary target output folder
-		baseName := filepath.Base(p)
-		pn := filepath.Join(pp, baseName+"-extracted")
+
+		pn := filepath.Join(pp, id)
 
 		err := os.MkdirAll(pn, 0755)
 		if err != nil {
@@ -189,55 +295,31 @@ func StartExtraction(port C.Dart_Port, archivePath, pPath *C.char) {
 		ext := strings.ToLower(filepath.Ext(p))
 
 		switch ext {
-		case ".pdf":
-			doc, err := pdf.ExtractPages(p, 100, tmpDir)
+		case ".tar":
+			sendLog(port, "tar archive detected start processing...")
+			err := Untar(p, tmpDir)
 			if err != nil {
 				sendLog(port, err.Error())
 				return
 			}
-			sendLog(port, fmt.Sprintf("extracted images: %s", fmt.Sprint(doc)))
 
-		case ".epub":
-			doc, err := epub(p, tmpDir)
+		default:
+			sendLog(port, "archive file detected starting extracting that first...")
+			a, err := unarr.NewArchive(p)
 			if err != nil {
 				sendLog(port, err.Error())
 				return
 			}
-			sendLog(port, fmt.Sprintf("extracted images: %s", fmt.Sprint(doc)))
-
-		case ".cbz":
-			err := ExtractCBZ(p, tmpDir)
+			err = Unarchive(a, tmpDir)
 			if err != nil {
 				sendLog(port, err.Error())
 				return
-			}
-			sendLog(port, fmt.Sprintf("extracted images: %s", tmpDir))
-
-		default: // Multi-file archive container format (Zip, Tar, Rar, 7z)
-			if ext == ".tar" {
-				sendLog(port, "tar archive detected start processing...")
-				err := crewler(p, tmpDir)
-				if err != nil {
-					sendLog(port, err.Error())
-					return
-				}
-			} else if ext == ".zip" || ext == ".7z" || ext == ".rar" {
-				sendLog(port, "archive file detected starting extracting that first...")
-				a, err := unarr.NewArchive(p)
-				if err != nil {
-					sendLog(port, err.Error())
-					return
-				}
-				err = decomp(a, tmpDir)
-				if err != nil {
-					sendLog(port, err.Error())
-					return
-				}
 			}
 
 			// Scan container directory for internal files
 			var pdfs []string
 			var epubs []string
+			var cbzs []string
 			sendLog(port, "extracting archive done. finding media files...")
 
 			err = filepath.WalkDir(tmpDir, func(path string, d fs.DirEntry, err error) error {
@@ -245,12 +327,16 @@ func StartExtraction(port C.Dart_Port, archivePath, pPath *C.char) {
 					return err
 				}
 				innerExt := strings.ToLower(filepath.Ext(path))
-				if innerExt == ".pdf" {
+				switch innerExt {
+				case ".pdf":
 					pdfs = append(pdfs, path)
 					sendLog(port, fmt.Sprintf("add pdf file: %s ", filepath.Base(path)))
-				} else if innerExt == ".epub" {
+				case ".epub":
 					epubs = append(epubs, path)
 					sendLog(port, fmt.Sprintf("add epub file: %s ", filepath.Base(path)))
+				case ".cbz":
+					cbzs = append(cbzs, path)
+					sendLog(port, fmt.Sprintf("add cbz file: %s ", filepath.Base(path)))
 				}
 				return nil
 			})
@@ -261,12 +347,14 @@ func StartExtraction(port C.Dart_Port, archivePath, pPath *C.char) {
 
 			// Process found nested PDF books
 			if len(pdfs) != 0 {
-				pdfParentDir := filepath.Join(tmpDir, "extracted-pdfs")
-				os.MkdirAll(pdfParentDir, 0755)
-
 				for l := 0; l < len(pdfs); l++ {
 					targetFile := pdfs[l]
-					bookFolder := filepath.Join(pdfParentDir, filepath.Base(targetFile)+"-extracted")
+					detectedChap, b := ExtractChapterNumber(targetFile)
+					if b == false {
+						detectedChap = fmt.Sprintf("unrecogonizedChapNum-%s", filepath.Base(targetFile))
+					}
+
+					bookFolder := filepath.Join(tmpDir, fmt.Sprintf("chapter-%s", detectedChap))
 					os.MkdirAll(bookFolder, 0755)
 
 					sendLog(port, fmt.Sprintf("extracting %s to directory %s...", filepath.Base(targetFile), bookFolder))
@@ -281,28 +369,103 @@ func StartExtraction(port C.Dart_Port, archivePath, pPath *C.char) {
 
 			// Process found nested EPUB books (Fixed: placed outside the PDF conditional block)
 			if len(epubs) != 0 {
-				epubParentDir := filepath.Join(tmpDir, "extracted-epubs")
-				os.MkdirAll(epubParentDir, 0755)
 
 				for l := 0; l < len(epubs); l++ {
 					targetFile := epubs[l]
-					bookFolder := filepath.Join(epubParentDir, filepath.Base(targetFile)+"-extracted")
+
+					detectedChap, b := ExtractChapterNumber(targetFile)
+					if b == false {
+						detectedChap = fmt.Sprintf("unrecogonizedChapNum-%s", filepath.Base(targetFile))
+					}
+
+					bookFolder := filepath.Join(tmpDir, fmt.Sprintf("chapter-%s", detectedChap))
 					os.MkdirAll(bookFolder, 0755)
 
 					sendLog(port, fmt.Sprintf("extracting %s to directory %s...", filepath.Base(targetFile), bookFolder))
-					doc, err := epub(targetFile, bookFolder)
+					err := Unepub(targetFile, bookFolder)
 					if err != nil {
 						sendLog(port, err.Error())
 						continue
 					}
-					sendLog(port, fmt.Sprintf("extracted epub images to: %s", fmt.Sprint(doc)))
+					sendLog(port, fmt.Sprintf("extracted epub from: %s", targetFile))
+				}
+			}
+			if len(cbzs) != 0 {
+
+				for l := 0; l < len(cbzs); l++ {
+					targetFile := cbzs[l]
+
+					detectedChap, b := ExtractChapterNumber(targetFile)
+					if b == false {
+						detectedChap = fmt.Sprintf("unrecogonizedChapNum-%s", filepath.Base(targetFile))
+					}
+
+					bookFolder := filepath.Join(tmpDir, fmt.Sprintf("chapter-%s", detectedChap))
+					os.MkdirAll(bookFolder, 0755)
+
+					sendLog(port, fmt.Sprintf("extracting %s to directory %s...", filepath.Base(targetFile), bookFolder))
+					err := Uncbz(targetFile, bookFolder)
+					if err != nil {
+						sendLog(port, err.Error())
+						continue
+					}
+					sendLog(port, fmt.Sprintf("extracted cbz from: %s", targetFile))
 				}
 			}
 		}
-		sendLog(port,"finish")
-	}(goPath, goPPath)
+		sendLog(port, "finish")
+	}(goPath, goPPath, goId)
 }
 
+//export StartExtractionChapter
+func StartExtractionChapter(port C.Dart_Port, filePathC, pPath, seriesId *C.char, chapterNumber *C.int) {
+	goPath := C.GoString(filePathC)
+	goPPath := C.GoString(pPath)
+	goSeriesId := C.GoString(seriesId)
+	cahpnum := int(*chapterNumber)
+	go func(p, pp, seriesid string, chapnum int) {
+		sendLog(port, "extracting task started...")
+
+		// Clean up and define primary target output folder
+
+		pn := filepath.Join(pp, seriesid, fmt.Sprintf("chapter-%d", chapnum))
+		err := os.MkdirAll(pn, 0755)
+		if err != nil {
+			sendLog(port, "failed to create base directory: "+err.Error())
+			return
+		}
+		tmpDir := pn
+		ext := strings.ToLower(filepath.Ext(p))
+
+		switch ext {
+		case ".pdf":
+			err := Unpdf(p, tmpDir)
+			if err != nil {
+				sendLog(port, err.Error())
+				return
+			}
+			sendLog(port, fmt.Sprintf("extracted images from %s to %s", p, tmpDir))
+
+		case ".epub":
+			err := Unepub(p, tmpDir)
+			if err != nil {
+				sendLog(port, err.Error())
+				return
+			}
+			sendLog(port, fmt.Sprintf("extracted images from %s to %s", p, tmpDir))
+
+		case ".cbz":
+			err := Uncbz(p, tmpDir)
+			if err != nil {
+				sendLog(port, err.Error())
+				return
+			}
+			sendLog(port, fmt.Sprintf("extracted images from %s to %s", p, tmpDir))
+
+		}
+		sendLog(port, "finish")
+	}(goPath, goPPath, goSeriesId, cahpnum)
+}
 func sendLog(port C.Dart_Port, message string) {
 	if dartPostCObject == nil {
 		return

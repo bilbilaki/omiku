@@ -1,15 +1,13 @@
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:omiku/models/manga_series.dart';
-import 'package:omiku/providers/manga_store.dart';
+import 'package:omiku/main.dart';
+import 'package:omiku/models/models.dart';
 import 'package:omiku/services/extraction_service.dart';
-import 'package:omiku/widgets/add_series_dialog.dart';
+import 'package:omiku/widgets/library_dialog.dart';
 import 'package:omiku/widgets/manga_details_screen.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
-import 'package:uuid/uuid.dart';
-import 'package:path/path.dart' as p;
 
 class LibraryScreen extends StatefulWidget {
   const LibraryScreen({super.key});
@@ -20,21 +18,136 @@ class LibraryScreen extends StatefulWidget {
 
 class _LibraryScreenState extends State<LibraryScreen> {
   bool _isProcessingFile = false; // State for file picker loading
+  Future<List<MangaSeries>>? _libraryFuture;
+  final TextEditingController seriesNameController = TextEditingController();
+  final TextEditingController descriptionController = TextEditingController();
+  final TextEditingController chapterNameController = TextEditingController();
+  final TextEditingController chapterNumController = TextEditingController();
 
-  Future<MangaSeries?> onJustChap() async {
-    MangaSeries? mm;
-    void mangaSeries(MangaSeries m) {
-      mm = m;
-    }
+  @override
+  void initState() {
+    super.initState();
+    _loadLibrary();
+  }
 
-    await showDialog(
+  void _loadLibrary() {
+    setState(() {
+      _libraryFuture = db.getAll<MangaSeries>();
+    });
+  }
+
+  void onSeriesProcessed() async {
+        Navigator.of(context).pop(); // Dismiss loading dialog
+
+    await showConfirmDialog(context);
+  }
+
+  void onSeriesSubmitted() async {
+    Navigator.of(context).pop(); // Dismiss loading dialog
+    MangaSeries s = (await db.get<MangaSeries>(onToppedId))!;
+    s.title = seriesNameController.text;
+    s.description = descriptionController.text;
+    MangaChapter ch = (await db.get<MangaChapter>(onToppedChId))!;
+    ch.title = chapterNameController.text;
+    ch.chapterNumber = double.parse(chapterNumController.text);
+    List<MangaChapter> lch = await db.getChaptersForSeries(s.seriesId);
+    lch.add(ch);
+await db.saveMangaWithChapters(s, lch);
+setState(() {
+  
+});
+  }
+
+  int currentactiveDialogTab = 0;
+  // Confirmation Dialog
+  Future<void> showConfirmDialog(BuildContext context) {
+    return showDialog<bool>(
       context: context,
-      builder: (context) {
-        return AddSeriesDialog(onSave: mangaSeries);
-      },
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: TabBar(
+          tabs: [
+            Tab(
+              text: 'Tab 1',
+              child: GestureDetector(
+                onTap: () {
+                  setState(() {
+                    currentactiveDialogTab = 0;
+                  });
+                },
+              ),
+            ),
+            Tab(
+              text: 'Tab 2',
+              child: GestureDetector(
+                onTap: () {
+                  setState(() {
+                    currentactiveDialogTab = 0;
+                  });
+                },
+              ),
+            ),
+          ],
+        ),
+        content: currentactiveDialogTab == 0
+            ? Column(
+                children: [
+                  Text(
+                    'Input your Manga Info or from other tab select an exist Series',
+                  ),
+                  SizedBox(),
+                  LibraryDialog(
+                    onDone: onSeriesSubmitted,
+                    coverImage: File(onToppedCover),
+                    seriesNameController: seriesNameController,
+                    chapterNameController: chapterNameController,
+                    chapterNumController: chapterNumController,
+                    descriptionController: descriptionController,
+                  ),
+                ],
+              )
+            : Text(
+                "find Series you want to adding current processed manga to that",
+              ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Confirm'),
+          ),
+        ],
+      ),
     );
+  }
 
-    return mm;
+  // Bottom Sheet
+  void showOptionsSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+      ),
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.edit),
+              title: const Text('Edit'),
+              onTap: () => Navigator.pop(context),
+            ),
+            ListTile(
+              leading: const Icon(Icons.delete),
+              title: const Text('Delete'),
+              onTap: () => Navigator.pop(context),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _pickAndProcessMangaFile(BuildContext context) async {
@@ -73,12 +186,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
           ),
         ),
       );
-      bool ojc = false;
       try {
         final File file = File(result.files.single.path!);
-        if (p.extension(file.path) == "pdf" || p.extension(file.path) == "epub") {
-          ojc = true;
-        }
         final extractionService = Provider.of<ExtractionService>(
           context,
           listen: false,
@@ -89,10 +198,10 @@ class _LibraryScreenState extends State<LibraryScreen> {
         await extractionService.processArchive(
           file,
           appStorageDir,
-          onJustChap(),
-          ojc,
+          onSeriesProcessed,
           context,
         );
+        _loadLibrary();
 
         Navigator.of(context).pop(); // Dismiss loading dialog
         ScaffoldMessenger.of(context).showSnackBar(
@@ -123,20 +232,34 @@ class _LibraryScreenState extends State<LibraryScreen> {
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.search, color: Colors.white),
-            onPressed: () {
-              // TODO: Implement search functionality
-            },
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [],
           ),
         ],
       ),
-      body: Consumer<MangaStore>(
-        builder: (context, mangaStore, child) {
-          final List<MangaSeries> library = mangaStore.library;
+      body: FutureBuilder<List<MangaSeries>>(
+        future: _libraryFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (snapshot.hasError) {
+            return Center(
+              child: Text(
+                'Failed to load manga library: ${snapshot.error}',
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.white70, fontSize: 18),
+              ),
+            );
+          }
+
+          final List<MangaSeries> library = snapshot.data ?? [];
           return Column(
             children: [
-              // Filter Chips (mimicking the screenshot)
               Padding(
                 padding: const EdgeInsets.symmetric(
                   vertical: 16.0,
@@ -300,9 +423,15 @@ class _MangaSeriesCard extends StatelessWidget {
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8.0),
-              child: Text(
-                '${series.chapters.length} Chapters',
-                style: TextStyle(color: Colors.white70, fontSize: 12),
+              child: FutureBuilder<List<MangaChapter>>(
+                future: db.getChaptersForSeries(series.seriesId),
+                builder: (context, snapshot) {
+                  final count = snapshot.data?.length ?? 0;
+                  return Text(
+                    '$count Chapters',
+                    style: const TextStyle(color: Colors.white70, fontSize: 12),
+                  );
+                },
               ),
             ),
           ],

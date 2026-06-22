@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"time"
 )
@@ -10,16 +12,103 @@ import (
 // This variable is populated exclusively at compile time via the linker
 var BuildTimeClientID string
 
-const BaseURL = "https://api.myanimelist.net/v2"
-
+const MYAnimeListBaseUrl = "https://api.myanimelist.net/v2"
+const ANIListBaseUrl = "https://graphql.anilist.co"
 type MALGuestClient struct {
 	HTTPClient *http.Client
+}
+type GraphQLRequest struct {
+	Query     string                 `json:"query"`
+	Variables map[string]interface{} `json:"variables"`
 }
 
 func NewMALGuestClient() *MALGuestClient {
 	return &MALGuestClient{
 		HTTPClient: &http.Client{Timeout: 50 * time.Second},
 	}
+}
+
+func (c *MALGuestClient) SearchMangaAniList(queryi string)(GetMangaResult, error){
+	var result GetMangaResult
+
+	query := `
+		query Media($type: MediaType, $search: String) {
+			Media(type: $type, search: $search) {
+				id
+				description
+				coverImage {
+					medium
+					large
+					extraLarge
+					color
+				}
+				chapters
+				bannerImage
+				genres
+				hashtag
+				title {
+					english
+					romaji
+					native
+				}
+			}
+		}
+	`
+
+	// 2. Define your variables
+	variables := map[string]interface{}{
+		"search": queryi,
+		"type":   "MANGA",
+	}
+
+	// 3. Combine them into the request payload struct
+	payload := GraphQLRequest{
+		Query:     query,
+		Variables: variables,
+	}
+
+	// 4. Convert the struct into JSON bytes
+	jsonData, err := json.Marshal(payload)
+	if err != nil {
+		fmt.Printf("Error marshaling JSON: %v\n", err)
+		return result , err
+	}
+
+	// 5. Create the HTTP POST request
+	req, err := http.NewRequest("POST", ANIListBaseUrl, bytes.NewBuffer(jsonData))
+	if err != nil {
+		fmt.Printf("Error creating request: %v\n", err)
+		return result,err
+	}
+
+	// 6. Set the required headers
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+
+	// 7. Execute the request
+	client := c.HTTPClient
+	resp, err := client.Do(req)
+	if err != nil {
+		fmt.Printf("Error making request: %v\n", err)
+		return result , err
+	}
+	defer resp.Body.Close()
+
+	// 8. Read and print the response
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Printf("Error reading response body: %v\n", err)
+		return result, err
+	}
+	err = json.Unmarshal(body,result)
+if err!=nil {
+	return result, err
+}
+
+	fmt.Println("Response Status:", resp.Status)
+	fmt.Println("Response Body:\n", string(body))
+	return  result,nil
+
 }
 
 func (c *MALGuestClient) SearchAnime(query string, limit int) (GetAnimeListResult, error) {
@@ -30,7 +119,7 @@ func (c *MALGuestClient) SearchAnime(query string, limit int) (GetAnimeListResul
 		return result, fmt.Errorf("critical error: MAL Client ID was not injected at build time")
 	}
 
-	endpoint := fmt.Sprintf("%s/anime", BaseURL)
+	endpoint := fmt.Sprintf("%s/anime", MYAnimeListBaseUrl)
 	req, err := http.NewRequest("GET", endpoint, nil)
 	if err != nil {
 		return result, err
@@ -73,7 +162,7 @@ func (c *MALGuestClient) GetAnimeDetail(animeID int) (GetAnimeDetailResult, erro
 	}
 
 	// Endpoint structure: https://api.myanimelist.net/v2/anime/{id}
-	endpoint := fmt.Sprintf("%s/anime/%d", BaseURL, animeID)
+	endpoint := fmt.Sprintf("%s/anime/%d", MYAnimeListBaseUrl, animeID)
 	req, err := http.NewRequest("GET", endpoint, nil)
 	if err != nil {
 		return result, err

@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:omiku/models/manga_panel.dart';
+import 'package:omiku/models/models.dart';
 
 class MangaReaderScreen extends StatefulWidget {
   final List<MangaPanel> detectedPanels;

@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:omiku/models/manga_panel.dart';
+import 'package:omiku/models/models.dart';
 import 'package:ultralytics_yolo/ultralytics_yolo.dart';
 // For panel IDs
 

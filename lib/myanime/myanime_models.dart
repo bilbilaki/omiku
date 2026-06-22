@@ -1,3 +1,5 @@
+import 'package:flutter/widgets.dart';
+
 class MainPicture {
   final String medium;
   final String large;
@@ -696,6 +698,206 @@ class GetAnimeDetailResult {
           [],
       statistics: Statistics.fromJson(
         json['statistics'] as Map<String, dynamic>? ?? <String, dynamic>{},
+      ),
+    );
+  }
+}
+
+class MangaCoverImage {
+  final String medium;
+  final String large;
+  final String extraLarge;
+  final String color;
+
+  MangaCoverImage({
+    required this.medium,
+    required this.large,
+    required this.extraLarge,
+    required this.color,
+  });
+
+  MangaCoverImage copyWith({
+    String? medium,
+    String? large,
+    String? extraLarge,
+    String? color,
+  }) {
+    return MangaCoverImage(
+      medium: medium ?? this.medium,
+      large: large ?? this.large,
+      extraLarge: extraLarge ?? this.extraLarge,
+      color: color ?? this.color,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'medium': medium,
+      'large': large,
+      'extraLarge': extraLarge,
+      'color': color,
+    };
+  }
+
+  factory MangaCoverImage.fromJson(Map<String, dynamic> json) {
+    return MangaCoverImage(
+      medium: json['medium'] as String? ?? '',
+      large: json['large'] as String? ?? '',
+      extraLarge: json['extraLarge'] as String? ?? '',
+      color: json['color'] as String? ?? '',
+    );
+  }
+}
+
+class MangaTitle {
+  final String english;
+  final String romaji;
+  final String native;
+
+  MangaTitle({
+    required this.english,
+    required this.romaji,
+    required this.native,
+  });
+
+  MangaTitle copyWith({String? english, String? romaji, String? native}) {
+    return MangaTitle(
+      english: english ?? this.english,
+      romaji: romaji ?? this.romaji,
+      native: native ?? this.native,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {'english': english, 'romaji': romaji, 'native': native};
+  }
+
+  factory MangaTitle.fromJson(Map<String, dynamic> json) {
+    return MangaTitle(
+      english: json['english'] as String? ?? '',
+      romaji: json['romaji'] as String? ?? '',
+      native: json['native'] as String? ?? '',
+    );
+  }
+}
+
+class MangaMedia {
+  final int id;
+  final String description;
+  final MangaCoverImage coverImage;
+  final int? chapters;
+  final String bannerImage;
+  final List<String> genres;
+  final String hashtag;
+  final MangaTitle title;
+
+  MangaMedia({
+    required this.id,
+    required this.description,
+    required this.coverImage,
+    required this.chapters,
+    required this.bannerImage,
+    required this.genres,
+    required this.hashtag,
+    required this.title,
+  });
+
+  MangaMedia copyWith({
+    int? id,
+    String? description,
+    MangaCoverImage? coverImage,
+    int? chapters,
+    String? bannerImage,
+    List<String>? genres,
+    String? hashtag,
+    MangaTitle? title,
+  }) {
+    return MangaMedia(
+      id: id ?? this.id,
+      description: description ?? this.description,
+      coverImage: coverImage ?? this.coverImage,
+      chapters: chapters ?? this.chapters,
+      bannerImage: bannerImage ?? this.bannerImage,
+      genres: genres ?? this.genres,
+      hashtag: hashtag ?? this.hashtag,
+      title: title ?? this.title,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'description': description,
+      'coverImage': coverImage.toJson(),
+      'chapters': chapters,
+      'bannerImage': bannerImage,
+      'genres': genres,
+      'hashtag': hashtag,
+      'title': title.toJson(),
+    };
+  }
+
+  factory MangaMedia.fromJson(Map<String, dynamic> json) {
+    return MangaMedia(
+      id: json['id'] as int? ?? 0,
+      description: json['description'] as String? ?? '',
+      coverImage: MangaCoverImage.fromJson(
+        json['coverImage'] as Map<String, dynamic>? ?? <String, dynamic>{},
+      ),
+      chapters: json['chapters'] as int?,
+      bannerImage: json['bannerImage'] as String? ?? '',
+      genres:
+          (json['genres'] as List<dynamic>?)
+              ?.map((item) => item as String)
+              .toList() ??
+          [],
+      hashtag: json['hashtag'] as String? ?? '',
+      title: MangaTitle.fromJson(
+        json['title'] as Map<String, dynamic>? ?? <String, dynamic>{},
+      ),
+    );
+  }
+}
+
+class MangaData {
+  final MangaMedia media;
+
+  MangaData({required this.media});
+
+  MangaData copyWith({MangaMedia? media}) {
+    return MangaData(media: media ?? this.media);
+  }
+
+  Map<String, dynamic> toJson() {
+    return {'Media': media.toJson()};
+  }
+
+  factory MangaData.fromJson(Map<String, dynamic> json) {
+    return MangaData(
+      media: MangaMedia.fromJson(
+        json['Media'] as Map<String, dynamic>? ?? <String, dynamic>{},
+      ),
+    );
+  }
+}
+
+class GetMangaResult {
+  final MangaData data;
+
+  GetMangaResult({required this.data});
+
+  GetMangaResult copyWith({MangaData? data}) {
+    return GetMangaResult(data: data ?? this.data);
+  }
+
+  Map<String, dynamic> toJson() {
+    return {'data': data.toJson()};
+  }
+
+  factory GetMangaResult.fromJson(Map<String, dynamic> json) {
+    return GetMangaResult(
+      data: MangaData.fromJson(
+        json['data'] as Map<String, dynamic>? ?? <String, dynamic>{},
       ),
     );
   }

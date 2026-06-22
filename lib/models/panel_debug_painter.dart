@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:omiku/models/manga_panel.dart';
+import 'package:omiku/models/models.dart';
 
 class PanelDebugPainter extends CustomPainter {
   final List<MangaPanel> panels;

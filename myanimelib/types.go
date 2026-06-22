@@ -106,3 +106,34 @@ type GetAnimeDetailResult struct {
 	Studios                []Studio          `json:"studios"`
 	Statistics             Statistics        `json:"statistics"`
 }
+
+// Manga types for AniList GraphQL
+type MangaCoverImage struct {
+	Medium     string `json:"medium"`
+	Large      string `json:"large"`
+	ExtraLarge string `json:"extraLarge"`
+	Color      string `json:"color"`
+}
+
+type MangaTitle struct {
+	English string `json:"english"`
+	Romaji  string `json:"romaji"`
+	Native  string `json:"native"`
+}
+
+type MangaMedia struct {
+	Id          int             `json:"id"`
+	Description string          `json:"description"`
+	CoverImage  MangaCoverImage `json:"coverImage"`
+	Chapters    *int            `json:"chapters"`
+	BannerImage string          `json:"bannerImage"`
+	Genres      []string        `json:"genres"`
+	Hashtag     string          `json:"hashtag"`
+	Title       MangaTitle      `json:"title"`
+}
+
+type GetMangaResult struct {
+	Data struct {
+		Media MangaMedia `json:"Media"`
+	} `json:"data"`
+}

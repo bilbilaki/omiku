@@ -1,13 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:omiku/models/manga_series.dart';
-import 'package:omiku/providers/manga_store.dart';
-import 'package:uuid/uuid.dart';
+import 'package:omiku/models/models.dart';
 
 class EditMangaSeries extends StatefulWidget {
   final MangaSeries mangaSeries;
-  final MangaStore _mangaStore;
 
-  const EditMangaSeries({super.key, required this.mangaSeries,required this._mangaStore});
+  const EditMangaSeries({super.key, required this.mangaSeries});
 
   @override
   _EditMangaSeriesState createState() => _EditMangaSeriesState();

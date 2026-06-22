@@ -1,43 +1,37 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:omiku/extractor/ffibindings.dart';
-import 'package:omiku/models/manga_series.dart';
-import 'package:omiku/providers/manga_store.dart';
+import 'package:omiku/main.dart';
+import 'package:omiku/models/models.dart';
 import 'package:omiku/services/panel_detector_service.dart';
 import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
+
 // import 'package:uuid/uuid.dart'; // Already imported above
+int onToppedId = 0;
+int onToppedChId = 0;
+String onToppedCover = '';
 
 class ExtractionService {
   final GoExtractor _extractor = GoExtractor();
-  final MangaStore _mangaStore;
-
-  ExtractionService(this._mangaStore);
+  ExtractionService();
 
   /// Handles processing a file archive, passing sandbox paths to Go,
   /// and building a fully mapped MangaSeries model out of the results.
   Future<void> processArchive(
     File archiveFile,
     String appStorageDir,
-    Future<MangaSeries?> onJustChap,
-    bool usedOJC,
+    VoidCallback onDone,
     BuildContext context,
   ) async {
     // 1. Enforce App-Sandbox output target location
     // This gives your native code explicit permission to write locally
     final String extractionRoot = p.join(appStorageDir, 'ExtractedMedia');
-    late MangaSeries ms;
     // Create a unique series ID and directory name
     final String seriesId = const Uuid().v4();
     final String seriesFolderName = "${p.basename(archiveFile.path)}-extracted";
     final String expectedFinalPath = p.join(extractionRoot, seriesFolderName);
-    if (usedOJC) {
-      var mss = await onJustChap;
-      if (mss != null) {
-        ms = mss;
-      } else {
-      }
-    }
     debugPrint("Triggering Go Extraction to sandbox path: $expectedFinalPath");
 
     try {
@@ -94,40 +88,51 @@ class ExtractionService {
           seriesId,
           chapterId,
           targetDirectory.path,
-          context,
         ); // Get pages
-        extractedChapters.add(
-          MangaChapter(
-            id: chapterId, // Use generated chapterId
-            title: p.basenameWithoutExtension(archiveFile.path),
-            chapterNumber: 1.0,
-            pathToChapterData: expectedFinalPath,
-            totalPages:
-                pages.length, // Set totalPages based on actual pages found
-            pagesData: pages, // Pass the generated pages
-          ),
-        );
+        MangaChapter mc = MangaChapter();
+        mc.chapterId = chapterId;
+        mc.seriesId = seriesId;
+        mc.title = p.basenameWithoutExtension(archiveFile.path);
+        mc.chapterNumber = 1.0;
+        mc.pathToChapterData = expectedFinalPath;
+        mc.totalPages = pages.length;
+
+        mc.pages.addAll(pages);
+        await db.put<MangaChapter>(mc);
+        await db.saveChapterWithPages(mc, pages);
+        onToppedChId = mc.id;
+
+        extractedChapters.add(mc);
       }
 
       // 4. Register new book profile into your Hive Provider storage state
       if (extractedChapters.isNotEmpty) {
-        if (usedOJC) {
-          for (final ch in extractedChapters) {
-            _mangaStore.addChapterToSeries(ms.id, ch);
-          }
-        } else {
-          final newSeries = MangaSeries(
-            id: seriesId,
-            title: p.basenameWithoutExtension(archiveFile.path),
-            coverPath: _findFirstAvailablePage(
-              extractedChapters.first.pathToChapterData,
-            ),
-            chapters: extractedChapters,
-          );
+        IsarUserProgress pp = IsarUserProgress();
+        pp.isBookmarked = false;
+        pp.isLiked = false;
+        pp.lastReadAt = DateTime(0);
+        pp.lastReadChapterId = '';
+        pp.lastReadPage = 0;
+        MangaSeries ms = MangaSeries();
+        ms.seriesId = seriesId;
+        ms.title = p.basenameWithoutExtension(archiveFile.path);
+        ms.coverPath = _findFirstAvailablePage(
+          extractedChapters.first.pathToChapterData,
+        );
 
-          _mangaStore.addMangaSeries(newSeries);
-          debugPrint("Successfully added ${newSeries.title} to storage!");
-        }
+        ms.author = 'unknown';
+        ms.description = 'still no discription exist';
+        ms.progress = pp;
+        ms.chapters.addAll(extractedChapters);
+        await db.saveMangaWithChapters(ms, extractedChapters);
+
+        await db.put<MangaSeries>(ms);
+        final newSeries = ms;
+        onToppedCover = ms.coverPath;
+        onToppedId = ms.id;
+
+        debugPrint("Successfully added ${newSeries.title} to storage!");
+        onDone();
       }
     } catch (e) {
       debugPrint("Error handling extraction routine: $e");
@@ -135,24 +140,25 @@ class ExtractionService {
     }
   }
 
-  /// New helper function: Generates a list of ChapterPage objects for a given chapter directory.
+  /// Generates a list of ChapterPage objects for a given chapter directory.
   Future<List<ChapterPage>> _getChapterPages(
     String seriesId,
     String chapterId,
     String chapterDirPath,
-    BuildContext context,
   ) async {
     final List<ChapterPage> pages = [];
     final Directory dir = Directory(chapterDirPath);
-    if (!await dir.exists()) {
-      return pages; // Return empty list if directory doesn't exist
-    }
-    final panelDetectionService = PanelDetectionService();
 
-    // Ensure the YOLO model is fully loaded before detection
+    if (!await dir.exists()) {
+      debugPrint("⚠️ Chapter directory does not exist: $chapterDirPath");
+      return pages;
+    }
+
+    final panelDetectionService = PanelDetectionService();
+    // Ensure the YOLO model is fully loaded before running detection loops
     await panelDetectionService.ensureModelLoaded();
 
-    // Get all image files in the directory
+    // 1. Fetch and filter image files
     final List<File> imageFiles = await dir
         .list(recursive: false)
         .where((entity) {
@@ -165,6 +171,8 @@ class ExtractionService {
         })
         .cast<File>()
         .toList();
+
+    // 2. Sort naturally by extracting digit sequences
     final RegExp numRegExp = RegExp(r'(\d+)');
     imageFiles.sort((a, b) {
       final String nameA = p.basenameWithoutExtension(a.path);
@@ -177,22 +185,37 @@ class ExtractionService {
         final int numB = int.tryParse(matchB.group(1)!) ?? 0;
         if (numA != numB) return numA.compareTo(numB);
       }
-      return nameA.compareTo(nameB); // Fallback to string comparison
+      return nameA.compareTo(nameB);
     });
 
+    // 3. Process pages sequentially through YOLO
+    const uuid = Uuid();
     for (int i = 0; i < imageFiles.length; i++) {
-      var panels = await panelDetectionService.pickAndDetect(imageFiles[i]);
+      final String chapterPageId = uuid.v4();
 
-      pages.add(
-        ChapterPage(
-          seriesId: seriesId,
-          chapterId: chapterId,
-          pageNumber: i + 1, // Page numbers are 1-based
-          pageFilePath: imageFiles[i].path,
-          panelsData: panels,
-        ),
+      // Runs on-device machine learning inference
+      List<MangaPanel>? panels = await panelDetectionService.pickAndDetect(
+        imageFiles[i],
       );
+
+      // Map panels to URI-encoded JSON strings to safely match your models.dart getter
+      if (panels != null && panels != []) {
+        final List<String> serializedPanels = panels!.map((pan) {
+          return Uri.encodeComponent(jsonEncode(pan.toJson()));
+        }).toList();
+
+        // Build the non-persisted database record
+        final ChapterPage chapterPage = ChapterPage()
+          ..pageId = chapterPageId
+          ..chapterId = chapterId
+          ..pageNumber = i + 1
+          ..pageFilePath = imageFiles[i].path
+          ..panelRawJson = serializedPanels;
+
+        pages.add(chapterPage);
+      }
     }
+
     return pages;
   }
 
@@ -208,24 +231,23 @@ class ExtractionService {
     double chapterIndex = 1.0;
     for (var entity in entities) {
       if (entity is Directory && entity.path.endsWith('-extracted')) {
-        final String chapterId = const Uuid().v4(); // Generate chapter ID here
-        final List<ChapterPage> pages = await _getChapterPages(
+        String chapterId = const Uuid().v4(); // Generate chapter ID here
+        List<ChapterPage> pages = await _getChapterPages(
           seriesId,
           chapterId,
           entity.path,
-          context,
-        ); // Get pages
-        chapters.add(
-          MangaChapter(
-            id: chapterId, // Use generated chapterId
-            title: p.basename(entity.path).replaceAll('-extracted', ''),
-            chapterNumber: chapterIndex++,
-            pathToChapterData: entity.path,
-            totalPages:
-                pages.length, // Set totalPages based on actual pages found
-            pagesData: pages, // Pass the generated pages
-          ),
-        );
+        ); // Get pag
+        MangaChapter ch = MangaChapter();
+        ch.chapterNumber = chapterIndex++;
+        ch.pathToChapterData = entity.path;
+        ch.totalPages = pages.length;
+
+        ch.chapterId = chapterId;
+        ch.pages.addAll(pages);
+        await db.saveChapterWithPages(ch, pages);
+        await db.put<MangaChapter>(ch);
+
+        chapters.add(ch);
       }
     }
     // Maintain sequential chapter listing order

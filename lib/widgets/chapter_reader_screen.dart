@@ -1,17 +1,17 @@
 import 'dart:io';
-
 import 'package:flutter/material.dart';
-import 'package:omiku/models/manga_series.dart';
-import 'package:omiku/widgets/manga_reader.dart'; // Import the adapted MangaReaderScreen
+import 'package:omiku/main.dart'; // Access your database global 'db' instance
+import 'package:omiku/models/models.dart';
+import 'package:omiku/widgets/manga_reader.dart';
 
 class ChapterReaderScreen extends StatefulWidget {
   final MangaChapter chapter;
-  final bool isLTR; // Reading direction for the chapter
+  final bool isLTR;
 
   const ChapterReaderScreen({
     super.key,
     required this.chapter,
-    this.isLTR = false, // Default to RTL (manga)
+    this.isLTR = false,
   });
 
   @override
@@ -21,11 +21,34 @@ class ChapterReaderScreen extends StatefulWidget {
 class _ChapterReaderScreenState extends State<ChapterReaderScreen> {
   late PageController _pageController;
   int _currentPageIndex = 0;
+  List<ChapterPage> _loadedPages = [];
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
     _pageController = PageController(initialPage: _currentPageIndex);
+    _loadPagesFromDatabase();
+  }
+
+  Future<void> _loadPagesFromDatabase() async {
+    try {
+      // Bypasses the unmanaged/lazy link issue by fetching pages directly by ID
+      final pages = await db.getPagesForChapter(widget.chapter.chapterId);
+      if (mounted) {
+        setState(() {
+          _loadedPages = pages;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint("Error loading chapter pages: $e");
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -35,17 +58,11 @@ class _ChapterReaderScreenState extends State<ChapterReaderScreen> {
   }
 
   void _goToNextPage() {
-    if (_currentPageIndex < widget.chapter.pagesData.length - 1) {
+    if (_currentPageIndex < _loadedPages.length - 1) {
       _pageController.nextPage(
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeIn,
       );
-    } else {
-      // End of chapter reached
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('End of Chapter!')),
-      );
-      Navigator.of(context).pop(); // Go back to detail screen
     }
   }
 
@@ -55,53 +72,66 @@ class _ChapterReaderScreenState extends State<ChapterReaderScreen> {
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeIn,
       );
-    } else {
-      // Beginning of chapter reached
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Beginning of Chapter!')),
-      );
-      // Optionally, pop to previous screen or do nothing
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (widget.chapter.pagesData.isEmpty) {
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: Color(0xFF1E1E24),
+        body: Center(
+          child: CircularProgressIndicator(color: Colors.blueAccent),
+        ),
+      );
+    }
+
+    if (_loadedPages.isEmpty) {
       return Scaffold(
         backgroundColor: const Color(0xFF1E1E24),
         appBar: AppBar(
           backgroundColor: const Color(0xFF1E1E24),
-          title: Text(widget.chapter.title, style: const TextStyle(color: Colors.white)),
+          title: Text(
+            widget.chapter.title,
+            style: const TextStyle(color: Colors.white),
+          ),
           iconTheme: const IconThemeData(color: Colors.white),
         ),
         body: const Center(
-          child: Text('No pages found for this chapter.', style: TextStyle(color: Colors.white)),
+          child: Text(
+            'No pages found for this chapter.',
+            style: TextStyle(color: Colors.white, fontSize: 16),
+          ),
         ),
       );
     }
 
     return Scaffold(
+      backgroundColor: Colors.black,
       body: PageView.builder(
         physics: const NeverScrollableScrollPhysics(),
         controller: _pageController,
-        itemCount: widget.chapter.pagesData.length,
+        itemCount: _loadedPages.length,
         onPageChanged: (index) {
           setState(() {
             _currentPageIndex = index;
           });
         },
+        // REMOVED 'async' here
         itemBuilder: (context, index) {
-          final currentPage = widget.chapter.pagesData[index];
-          // MangaReaderScreen is now responsible for displaying a single page
-          // with its panels. It will call _goToNextPage/_goToPreviousPage
-          // when the user runs out of panels on the current page.
-          return MangaReaderScreen(
-            detectedPanels: currentPage.panelsData??[],
-            mangaImage: File(currentPage.pageFilePath),
-            onNextPage: _goToNextPage,
-            onPervPage: _goToPreviousPage,
-          );
-        },
+          // Pull safely from our loaded array list
+          ChapterPage currentPage = _loadedPages[index];
+
+
+              final panels = currentPage.panels;
+              return MangaReaderScreen(
+                detectedPanels: panels,
+                mangaImage: File(currentPage.pageFilePath),
+                onNextPage: _goToNextPage,
+                onPervPage: _goToPreviousPage,
+              );
+            },
+        
       ),
     );
   }
