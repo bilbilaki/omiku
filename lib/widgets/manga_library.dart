@@ -1,12 +1,14 @@
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:omiku/main.dart';
 import 'package:omiku/models/models.dart';
 import 'package:omiku/services/extraction_service.dart';
 import 'package:omiku/widgets/gridview/premium_media_card.dart';
 import 'package:omiku/widgets/library_dialog.dart';
 import 'package:omiku/widgets/manga_details_screen.dart';
+import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 
@@ -38,31 +40,69 @@ class _LibraryScreenState extends State<LibraryScreen> {
   }
 
   void onSeriesProcessed() async {
-        Navigator.of(context).pop(); // Dismiss loading dialog
+    Navigator.of(context).pop(); // Dismiss loading dialog
 
     await showConfirmDialog(context);
   }
 
-// Update your submission handler signature and inner logic to map both choice variants
-  void onSeriesSubmitted(bool isNewSeries, MangaSeries? existingSeries, String? onlineCoverUrl) async {
+  static Future<File> downloadAndSaveImage(String url, int seriesid) async {
+    try {
+      // 1. Kick off the network request immediately
+      final Future<http.Response> responseFuture = http.get(Uri.parse(url));
+
+      // 2. Concurrently get the local document directory while the network runs
+      final Directory directory = await getApplicationSupportDirectory();
+      final t = Directory(p.join(directory.path, '$seriesid'));
+      if (!t.existsSync()) {
+        t.createSync();
+      }
+      // Extract a unique file name from the URL or generate one
+      final String fileName = p.basename(Uri.parse(url).path);
+      final String localPath = p.join(directory.path, '$seriesid', fileName);
+
+      // 3. Await the response if it's not finished yet
+      final http.Response response = await responseFuture;
+
+      if (response.statusCode == 200) {
+        // 4. Write bytes directly to disk
+        final File file = File(localPath);
+        return await file.writeAsBytes(response.bodyBytes);
+      } else {
+        throw Exception(
+          'Failed to download image: Status ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      throw Exception('Error saving image locally: $e');
+    }
+  }
+
+  // Update your submission handler signature and inner logic to map both choice variants
+  void onSeriesSubmitted(
+    bool isNewSeries,
+    MangaSeries? existingSeries,
+    String? onlineCoverUrl,
+  ) async {
     if (isNewSeries) {
       // CHOICE 1: Hydrate the automatically made sandbox entry as a fresh new series
       MangaSeries s = (await db.get<MangaSeries>(onToppedId))!;
       s.title = seriesNameController.text.trim();
       s.description = descriptionController.text.trim();
       if (onlineCoverUrl != null && onlineCoverUrl.isNotEmpty) {
-        s.coverPath = onlineCoverUrl; // Map remote internet assets if chosen
+        final hf = await downloadAndSaveImage(onlineCoverUrl, onToppedId);
+
+        s.coverPath = hf.path;
       }
-      
+
       MangaChapter ch = (await db.get<MangaChapter>(onToppedChId))!;
       ch.title = chapterNameController.text.trim();
-      ch.chapterNumber = double.tryParse(chapterNumController.text) ?? 1.0;
-      
+      ch.chapterNumber = double.parse(chapterNumController.text);
+
       List<MangaChapter> lch = await db.getChaptersForSeries(s.seriesId);
       if (!lch.any((element) => element.chapterId == ch.chapterId)) {
         lch.add(ch);
       }
-      
+
       await db.saveMangaWithChapters(s, lch);
       await db.put<MangaSeries>(s);
     } else {
@@ -71,24 +111,31 @@ class _LibraryScreenState extends State<LibraryScreen> {
         MangaChapter ch = (await db.get<MangaChapter>(onToppedChId))!;
         ch.title = chapterNameController.text.trim();
         ch.chapterNumber = double.tryParse(chapterNumController.text) ?? 1.0;
-        ch.seriesId = existingSeries.seriesId; // Point chapter over to existing container
-        
+        ch.seriesId =
+            existingSeries.seriesId; // Point chapter over to existing container
+
         await db.put<MangaChapter>(ch);
-        
-        List<MangaChapter> existingChapters = await db.getChaptersForSeries(existingSeries.seriesId);
-        if (!existingChapters.any((element) => element.chapterId == ch.chapterId)) {
+
+        List<MangaChapter> existingChapters = await db.getChaptersForSeries(
+          existingSeries.seriesId,
+        );
+        if (!existingChapters.any(
+          (element) => element.chapterId == ch.chapterId,
+        )) {
           existingChapters.add(ch);
         }
-        
-        // Ensure sequential reading preservation order 
-        existingChapters.sort((a, b) => a.chapterNumber.compareTo(b.chapterNumber));
-        
+
+        // Ensure sequential reading preservation order
+        existingChapters.sort(
+          (a, b) => a.chapterNumber.compareTo(b.chapterNumber),
+        );
+
         await db.saveMangaWithChapters(existingSeries, existingChapters);
         await db.put<MangaSeries>(existingSeries);
-        
+
         // Clean up the temporary shell series generated by the service to prevent layout ghosts
         try {
-          await db.delete<MangaSeries>(onToppedId); 
+          await db.delete<MangaSeries>(onToppedId);
         } catch (e) {
           debugPrint("Temporary Series removal note: $e");
         }
@@ -102,31 +149,32 @@ class _LibraryScreenState extends State<LibraryScreen> {
     chapterNumController.clear();
 
     if (context.mounted) {
-      Navigator.of(context).pop(); 
+      _loadLibrary();
+      Navigator.of(context).pop();
     }
   }
 
   // Update showConfirmDialog wrapper to forward parameters
-Future<void> showConfirmDialog(BuildContext context) {
-  return Navigator.of(context).push(
-    MaterialPageRoute(
-      builder: (context) => LibraryPage(
-        onDone: (isNewSeries, existingSeries, onlineCoverUrl) {
-          // 1. Call your submit logic
-          onSeriesSubmitted(isNewSeries, existingSeries, onlineCoverUrl);
-          
-          // 2. Pop the LibraryPage off the navigation stack to go back
-          Navigator.of(context).pop();
-        },
-        coverImage: File(onToppedCover),
-        seriesNameController: seriesNameController,
-        chapterNameController: chapterNameController,
-        chapterNumController: chapterNumController,
-        descriptionController: descriptionController,
+  Future<void> showConfirmDialog(BuildContext context) {
+    return Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => LibraryPage(
+          onDone: (isNewSeries, existingSeries, onlineCoverUrl) {
+            // 1. Call your submit logic
+            onSeriesSubmitted(isNewSeries, existingSeries, onlineCoverUrl);
+
+            // 2. Pop the LibraryPage off the navigation stack to go back
+          },
+          coverImage: File(onToppedCover),
+          seriesNameController: seriesNameController,
+          chapterNameController: chapterNameController,
+          chapterNumController: chapterNumController,
+          descriptionController: descriptionController,
+        ),
       ),
-    ),
-  );
-}  // Bottom Sheet
+    );
+  } // Bottom Sheet
+
   void showOptionsSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -153,76 +201,83 @@ Future<void> showConfirmDialog(BuildContext context) {
     );
   }
 
-Future<void> _pickAndProcessMangaFile(BuildContext context) async {
-  if (_isProcessingFile) return;
+  Future<void> _pickAndProcessMangaFile(BuildContext context) async {
+    if (_isProcessingFile) return;
 
-  final result = await FilePicker.pickFiles(
-    type: FileType.custom,
-    allowedExtensions: ['zip', 'cbz', 'pdf', 'epub', 'tar', '7z', 'rar'],
-  );
-
-  if (result != null && result.files.single.path != null) {
-    setState(() {
-      _isProcessingFile = true;
-    });
-
-    // 1. Show the loading indicator
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const AlertDialog(
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 16),
-            Text("Extracting Manga... This may take a moment."),
-          ],
-        ),
-      ),
+    final result = await FilePicker.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['zip', 'cbz', 'pdf', 'epub', 'tar', '7z', 'rar'],
     );
 
-   try {
-      final File file = File(result.files.single.path!);
-      final extractionService = Provider.of<ExtractionService>(context, listen: false);
-      final appStorageDir = (await getApplicationSupportDirectory()).path;
-
-      await extractionService.processArchive(file, appStorageDir, context);
-
-      if (context.mounted) Navigator.of(context).pop(); // Dismiss loading loader
-
-      // Initialize sensible defaults for the controllers before presenting choice layout
-      final defaultTitle = file.path.split('/').last.split('.').first;
-      seriesNameController.text = defaultTitle;
-      chapterNameController.text = defaultTitle;
-      chapterNumController.text = "1.0"; // Guarantees valid numeric fallback base
-      descriptionController.text = "";
-
-      if (context.mounted) {
-        await showConfirmDialog(context);
-      }
-
-      _loadLibrary();
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Manga added successfully!')),
-        );
-      }
-    } catch (e) {
-      debugPrint('Error processing file: $e');
-      if (context.mounted) Navigator.of(context).pop(); // Safety pop for loading dialog
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to add manga: $e')),
-        );
-      }
-    } finally {
+    if (result != null && result.files.single.path != null) {
       setState(() {
-        _isProcessingFile = false;
+        _isProcessingFile = true;
       });
+
+      // 1. Show the loading indicator
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const AlertDialog(
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text("Extracting Manga... This may take a moment."),
+            ],
+          ),
+        ),
+      );
+
+      try {
+        final File file = File(result.files.single.path!);
+        final extractionService = Provider.of<ExtractionService>(
+          context,
+          listen: false,
+        );
+        final appStorageDir = (await getApplicationSupportDirectory()).path;
+
+        await extractionService.processArchive(file, appStorageDir, context);
+
+        if (context.mounted)
+          Navigator.of(context).pop(); // Dismiss loading loader
+
+        // Initialize sensible defaults for the controllers before presenting choice layout
+        final defaultTitle = file.path.split('/').last.split('.').first;
+        seriesNameController.text = defaultTitle;
+        chapterNameController.text = defaultTitle;
+        chapterNumController.text =
+            "1 "; // Guarantees valid numeric fallback base
+        descriptionController.text = "";
+
+        if (context.mounted) {
+          await showConfirmDialog(context);
+        }
+
+        _loadLibrary();
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Manga added successfully!')),
+          );
+        }
+      } catch (e) {
+        debugPrint('Error processing file: $e');
+        if (context.mounted)
+          Navigator.of(context).pop(); // Safety pop for loading dialog
+        if (context.mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Failed to add manga: $e')));
+        }
+      } finally {
+        setState(() {
+          _isProcessingFile = false;
+        });
+      }
     }
   }
-}
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -300,34 +355,41 @@ Future<void> _pickAndProcessMangaFile(BuildContext context) async {
                         ),
                       )
                     : GridView.builder(
-                     padding: const EdgeInsets.all(14),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 14,
-                    mainAxisSpacing: 14,
-                    childAspectRatio: 0.72, // Perfect layout alignment avoiding height overflow
-                  ),
+                        padding: const EdgeInsets.all(14),
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
+                              crossAxisSpacing: 14,
+                              mainAxisSpacing: 14,
+                              childAspectRatio:
+                                  0.72, // Perfect layout alignment avoiding height overflow
+                            ),
                         itemCount: library.length,
                         itemBuilder: (context, index) {
                           final series = library[index];
-                    final chapterCount = series.chapters.length;
-                    final progress = _calculateSeriesProgress(series);
-                          return  PremiumMediaCard(
-                      id: series.seriesId,
-                      title: series.title,
-                      overview: series.description,
-                      imagePath: series.onlineCoverUrl ?? series.coverPath,
-                      badgeText: '$chapterCount Ch.',
-                      rating: null, // Average score could be loaded from online details if fetched
-                      progress: progress,
-                      onTap: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (context) => MangaDetailScreen(series: series),
-                          ),
-                        ).then((_) => _loadLibrary());
-                      },
-                    );
+                          final chapterCount = series.chapters.length;
+                          final progress = _calculateSeriesProgress(series);
+                          return PremiumMediaCard(
+                            id: series.seriesId,
+                            title: series.title,
+                            overview: series.description,
+                            imagePath:
+                                series.coverPath,
+                            badgeText: '$chapterCount Ch.',
+                            rating:
+                                null, // Average score could be loaded from online details if fetched
+                            progress: progress,
+                            onTap: () {
+                              Navigator.of(context)
+                                  .push(
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          MangaDetailScreen(series: series),
+                                    ),
+                                  )
+                                  .then((_) => _loadLibrary());
+                            },
+                          );
                         },
                       ),
               ),
@@ -378,20 +440,21 @@ Future<void> _pickAndProcessMangaFile(BuildContext context) async {
     );
   }
 }
-  /// Calculates individual reading progress representing cumulative stats across the series chapters
-  double _calculateSeriesProgress(MangaSeries series) {
-    if (series.chapters.isEmpty) return 0.0;
-    double cumulativeProgress = 0.0;
-    int measurableChapters = 0;
 
-    for (final ch in series.chapters) {
-      if (ch.totalPages > 0) {
+/// Calculates individual reading progress representing cumulative stats across the series chapters
+double _calculateSeriesProgress(MangaSeries series) {
+  if (series.chapters.isEmpty) return 0.0;
+  double cumulativeProgress = 0.0;
+  int measurableChapters = 0;
+
+  for (final ch in series.chapters) {
+    if (ch.totalPages > 0) {
       //  cumulativeProgress += ch.progress / ch.totalPages;
-        measurableChapters++;
-      }
+      measurableChapters++;
     }
-
-    return measurableChapters > 0
-        ? (cumulativeProgress / measurableChapters).clamp(0.0, 1.0)
-        : 0.0;
   }
+
+  return measurableChapters > 0
+      ? (cumulativeProgress / measurableChapters).clamp(0.0, 1.0)
+      : 0.0;
+}

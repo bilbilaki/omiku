@@ -146,31 +146,30 @@ class AnimeMangaService {
   }
 
   Future<GetMangaResult> searchMangaDetails(String query) async {
-    const String type = 'MANGA';
-    const String query = r'''
+    // 1. Hardcode MANGA directly into the query string and rename the variable
+    const String graphQLQuery = r'''
       query ($search: String) {
-         Media(search: $search, type: $type) {
-    averageScore
-    bannerImage
-    chapters
-    coverImage {
-      medium
-      large
-      extraLarge
-      color
-    }
-    id
-    idMal
-    description
-    meanScore
-    popularity
-    title {
-      romaji
-      english
-      native
-    }
-  }
-
+         Media(search: $search, type: MANGA) {
+            averageScore
+            bannerImage
+            chapters
+            coverImage {
+              medium
+              large
+              extraLarge
+              color
+            }
+            id
+            idMal
+            description
+            meanScore
+            popularity
+            title {
+              romaji
+              english
+              native
+            }
+         }
       }
     ''';
 
@@ -181,8 +180,10 @@ class AnimeMangaService {
         'Accept': 'application/json',
       },
       body: json.encode({
-        'query': query,
-        'variables': {'search': query},
+        'query': graphQLQuery, // 2. Use the renamed query string variable
+        'variables': {
+          'search': query,
+        }, // 3. 'query' now correctly refers to your method parameter
       }),
     );
 

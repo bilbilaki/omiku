@@ -99,9 +99,10 @@ class ExtractionService {
         mc.pages.addAll(pages);
         await db.put<MangaChapter>(mc);
         await db.saveChapterWithPages(mc, pages);
-        onToppedChId = mc.id;
 
         extractedChapters.add(mc);
+                onToppedChId = mc.id;
+
       }
 
       // 4. Register new book profile into your Hive Provider storage state
@@ -117,7 +118,7 @@ class ExtractionService {
         ms.anilistId = '';
         ms.malId = '';
         ms.onlineCoverUrl = '';
-      
+
         ms.seriesId = seriesId;
         ms.title = p.basenameWithoutExtension(archiveFile.path);
         ms.coverPath = _findFirstAvailablePage(
@@ -232,9 +233,9 @@ class ExtractionService {
         mc.pages.addAll(pages);
         await db.put<MangaChapter>(mc);
         await db.saveChapterWithPages(mc, pages);
-        onToppedChId = mc.id;
-
         extractedChapters.add(mc);
+                onToppedChId = mc.id;
+
       }
 
       // 4. Register new book profile into your Hive Provider storage state
@@ -247,10 +248,10 @@ class ExtractionService {
         pp.lastReadPage = 0;
 
         MangaSeries ms = MangaSeries();
-         ms.anilistId = '';
+        ms.anilistId = '';
         ms.malId = '';
         ms.onlineCoverUrl = '';
-       ms.seriesId = seriesId;
+        ms.seriesId = seriesId;
         ms.title = p.basenameWithoutExtension(archiveFile.path);
         ms.coverPath = _findFirstAvailablePage(
           extractedChapters.first.pathToChapterData,
@@ -383,9 +384,10 @@ class ExtractionService {
         mc.pages.addAll(pages);
         await db.put<MangaChapter>(mc);
         await db.saveChapterWithPages(mc, pages);
-        onToppedChId = mc.id;
 
         extractedChapters.add(mc);
+                onToppedChId = mc.id;
+
         //}
 
         // 4. Register new book profile into your Hive Provider storage state
@@ -397,10 +399,10 @@ class ExtractionService {
           pp.lastReadChapterId = '';
           pp.lastReadPage = 0;
           MangaSeries ms = MangaSeries();
-            ms.anilistId = '';
-        ms.malId = '';
-        ms.onlineCoverUrl = '';
-      ms.seriesId = seriesId;
+          ms.anilistId = '';
+          ms.malId = '';
+          ms.onlineCoverUrl = '';
+          ms.seriesId = seriesId;
           ms.title = p.basenameWithoutExtension(archiveFile.path);
           ms.coverPath = _findFirstAvailablePage(
             extractedChapters.first.pathToChapterData,
@@ -530,11 +532,13 @@ class ExtractionService {
         ch.totalPages = pages.length;
 
         ch.chapterId = chapterId;
+
         ch.pages.addAll(pages);
         await db.saveChapterWithPages(ch, pages);
         await db.put<MangaChapter>(ch);
 
         chapters.add(ch);
+        onToppedChId = ch.id;
       }
     }
     // Maintain sequential chapter listing order

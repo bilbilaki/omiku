@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:omiku/main.dart';
 import 'package:omiku/models/models.dart';
 import 'package:omiku/widgets/chapter_reader_screen.dart';
+import 'package:omiku/widgets/gridview/universal_image_loader.dart';
 
 class MangaDetailScreen extends StatefulWidget {
   final MangaSeries series;
@@ -76,12 +77,8 @@ class _MangaDetailScreenState extends State<MangaDetailScreen> {
             flexibleSpace: FlexibleSpaceBar(
               background: Hero(
                 tag: 'series_cover_${_currentSeries!.id}',
-                child: _currentSeries!.coverPath.isNotEmpty && File(_currentSeries!.coverPath).existsSync()
-                    ? Image.file(
-                        File(_currentSeries!.coverPath),
-                        fit: BoxFit.cover,
-                      )
-                    : Container(
+                child: _currentSeries!.coverPath.isNotEmpty
+                    ? UniversalImageLoader(imagePath: _currentSeries!.coverPath)                    : Container(
                         color: Colors.grey[700],
                         alignment: Alignment.center,
                         child: const Icon(Icons.image_not_supported, color: Colors.white54, size: 80),
