@@ -107,24 +107,26 @@ class _LibraryScreenState extends State<LibraryScreen> {
   }
 
   // Update showConfirmDialog wrapper to forward parameters
-  Future<void> showConfirmDialog(BuildContext context) {
-    return showDialog<bool>(
-      fullscreenDialog: true,
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Colors.transparent,
-        content: LibraryDialog(
-          onDone: onSeriesSubmitted,
-          coverImage: File(onToppedCover),
-          seriesNameController: seriesNameController,
-          chapterNameController: chapterNameController,
-          chapterNumController: chapterNumController,
-          descriptionController: descriptionController,
-        ),
+Future<void> showConfirmDialog(BuildContext context) {
+  return Navigator.of(context).push(
+    MaterialPageRoute(
+      builder: (context) => LibraryPage(
+        onDone: (isNewSeries, existingSeries, onlineCoverUrl) {
+          // 1. Call your submit logic
+          onSeriesSubmitted(isNewSeries, existingSeries, onlineCoverUrl);
+          
+          // 2. Pop the LibraryPage off the navigation stack to go back
+          Navigator.of(context).pop();
+        },
+        coverImage: File(onToppedCover),
+        seriesNameController: seriesNameController,
+        chapterNameController: chapterNameController,
+        chapterNumController: chapterNumController,
+        descriptionController: descriptionController,
       ),
-    );
-  }
-  // Bottom Sheet
+    ),
+  );
+}  // Bottom Sheet
   void showOptionsSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
