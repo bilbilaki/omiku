@@ -4,13 +4,11 @@ import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:isar/isar.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:omiku/main.dart';
 import 'package:omiku/models/models.dart';
 import 'package:omiku/services/local_file_playlist_service.dart';
-import 'package:provider/provider.dart';
 import 'package:path/path.dart' as p;
 
 //var userdata = UserDataService().decoderPreference;

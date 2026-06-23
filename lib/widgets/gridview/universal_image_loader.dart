@@ -48,7 +48,7 @@ class _FallbackErrorWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       color: const Color(0xFF0A1128),
-      child: Icon(Icons.movie_creation_outlined, color: Colors.white.withOpacity(0.2), size: 40),
+      child: Icon(Icons.movie_creation_outlined, color: Colors.white.withValues(alpha: 0.2), size: 40),
     );
   }
 }

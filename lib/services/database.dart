@@ -62,23 +62,31 @@ class DatabaseService {
   Future<void> putAll<T>(List<T> items) async {
     debugPrint('[DatabaseService] putAll() called with ${items.length} items of type: $T');
     await _isar.writeTxn(() async {
-      if (items is List<PlayableFile>)
+      if (items is List<PlayableFile>) {
         await _isar.playableFiles.putAll(items as List<PlayableFile>);
-      if (items is List<Series>)
+      }
+      if (items is List<Series>) {
         await _isar.series.putAll(items as List<Series>);
-      if (items is List<Season>)
+      }
+      if (items is List<Season>) {
         await _isar.seasons.putAll(items as List<Season>);
-      if (items is List<Episode>)
+      }
+      if (items is List<Episode>) {
         await _isar.episodes.putAll(items as List<Episode>);
+      }
       if (items is List<Movie>) await _isar.movies.putAll(items as List<Movie>);
-      if (items is List<Person>)
+      if (items is List<Person>) {
         await _isar.persons.putAll(items as List<Person>);
-      if (items is List<MangaSeries>)
+      }
+      if (items is List<MangaSeries>) {
         await _isar.mangaSeries.putAll(items as List<MangaSeries>);
-      if (items is List<MangaChapter>)
+      }
+      if (items is List<MangaChapter>) {
         await _isar.mangaChapters.putAll(items as List<MangaChapter>);
-      if (items is List<ChapterPage>)
+      }
+      if (items is List<ChapterPage>) {
         await _isar.chapterPages.putAll(items as List<ChapterPage>);
+      }
     });
     debugPrint('[DatabaseService] putAll() completed for items of type: $T');
   }

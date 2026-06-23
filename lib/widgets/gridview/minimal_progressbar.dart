@@ -13,7 +13,7 @@ class MinimalProgressBar extends StatelessWidget {
       width: double.infinity,
       child: LinearProgressIndicator(
         value: progress.clamp(0.0, 1.0),
-        backgroundColor: Colors.white.withOpacity(0.1),
+        backgroundColor: Colors.white.withValues(alpha: 0.1),
         valueColor: AlwaysStoppedAnimation<Color>(color),
       ),
     );

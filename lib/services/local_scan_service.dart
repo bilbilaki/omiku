@@ -1376,11 +1376,11 @@ class LocalScanService {
         fetchedData: FetchedData(
           tmdbId: int.parse('${best.tmdbId??best.malId??best.anilistId??best.movieId??best.id}'),
           title: best.metaData.title,
-          originalTitle: best.metaData.movieDetail?.originalTitle,
-          posterPath: best.metaData.movieDetail?.posterPath,
-          backdropPath: best.metaData.movieDetail?.backdropPath,
-          overview: best.metaData.movieDetail?.overview,
-          year: best.metaData.movieDetail?.releaseDate,
+          originalTitle: best.moviedetail.originalTitle,
+          posterPath: best.moviedetail.posterPath,
+          backdropPath: best.moviedetail.backdropPath,
+          overview: best.moviedetail.overview,
+          year: best.moviedetail.releaseDate,
         ),
       );
     }

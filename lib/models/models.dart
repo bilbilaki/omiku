@@ -42,27 +42,17 @@ class TmdbPageResponse<T> {
 // EMBEDDED OBJECTS (Stored inside Collections)
 // ==========================================
 
+@embedded
 class MainPicture {
-  final String medium;
-  final String large;
+  String? medium;
+  String? large;
 
-  MainPicture({required this.medium, required this.large});
-
-  MainPicture copyWith({String? medium, String? large}) {
-    return MainPicture(
-      medium: medium ?? this.medium,
-      large: large ?? this.large,
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {'medium': medium, 'large': large};
-  }
+  MainPicture({this.medium, this.large});
 
   factory MainPicture.fromJson(Map<String, dynamic> json) {
     return MainPicture(
-      medium: json['medium'] as String? ?? '',
-      large: json['large'] as String? ?? '',
+      medium: json['medium'] as String?,
+      large: json['large'] as String?,
     );
   }
 }
@@ -83,7 +73,7 @@ class Node {
   }
 
   Map<String, dynamic> toJson() {
-    return {'id': id, 'title': title, 'main_picture': mainPicture.toJson()};
+    return {'id': id, 'title': title, 'main_picture': mainPicture};
   }
 
   factory Node.fromJson(Map<String, dynamic> json) {
@@ -166,27 +156,11 @@ class Genres {
 }
 
 class AlternativeTitles {
-  final List<String> synonyms;
-  final String en;
-  final String ja;
+  List<String> synonyms = [];
+  String? en;
+  String? ja;
 
-  AlternativeTitles({
-    required this.synonyms,
-    required this.en,
-    required this.ja,
-  });
-
-  AlternativeTitles copyWith({List<String>? synonyms, String? en, String? ja}) {
-    return AlternativeTitles(
-      synonyms: synonyms ?? this.synonyms,
-      en: en ?? this.en,
-      ja: ja ?? this.ja,
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {'synonyms': synonyms, 'en': en, 'ja': ja};
-  }
+  AlternativeTitles({this.synonyms = const [], this.en, this.ja});
 
   factory AlternativeTitles.fromJson(Map<String, dynamic> json) {
     return AlternativeTitles(
@@ -637,8 +611,8 @@ class GetAnimeDetailResult {
     return {
       'id': id,
       'title': title,
-      'main_picture': mainPicture.toJson(),
-      'alternative_titles': alternativeTitles.toJson(),
+      'main_picture': mainPicture,
+      'alternative_titles': alternativeTitles,
       'start_date': startDate,
       'end_date': endDate,
       'synopsis': synopsis,
@@ -652,7 +626,7 @@ class GetAnimeDetailResult {
       'updated_at': updatedAt,
       'media_type': mediaType,
       'status': status,
-      'genres': genres.map((item) => item.toJson()).toList(),
+      'genres': genres.map((item) => item).toList(),
       'my_list_status': myListStatus.toJson(),
       'num_episodes': numEpisodes,
       'start_season': startSeason.toJson(),
@@ -1534,33 +1508,11 @@ class PlayNowState {
 @embedded
 class MetaData {
   String title = '';
-  String? description = 'no data exist';
-  List<String> genres = const [];
-  List<String> tags = const [];
-  List<String> covers = const [];
-  List<String> backgrounds = const [];
-  MovieDetail? movieDetail;
-  MovieCredits? credits;
-  @ignore
-  late final MangaData? mangaData;
-  @ignore
-  late final MangaMedia? mangaMedia;
-  @ignore
-  late final MangaTitle? mangaTitles;
-  @ignore
-  late final MangaCoverImage? mangaCoverImage;
-  @ignore
-  late final GetAnimeDetailResult? malSeriesDetail;
-  @ignore
-  late final Recommendation? malRecommand;
-  @ignore
-  late final Studio? malStudio;
-  @ignore
-  late final RelatedAnime? malRelatedAnime;
-  @ignore
-  late final AlternativeTitles? malAlterTiles;
-  @ignore
-  late final MainPicture? malMainPic;
+  String? overview;
+  String? backdropPath;
+  String? posterPath;
+  double voteAverage = 0.0;
+  String releaseDate = '';
 }
 
 @embedded
@@ -1692,7 +1644,7 @@ class Movie {
   String? coverPath;
 
   MetaData metaData = MetaData();
-
+  MovieDetail moviedetail= MovieDetail();
   Movie();
 
   factory Movie.fromJson(Map<dynamic, dynamic> json) {
@@ -1704,7 +1656,7 @@ class Movie {
 
     // 2. Base Metadata properties initialization
     movie.metaData.title = json['title'] ?? '';
-    movie.metaData.description = json['overview'] ?? 'no data exist';
+    movie.metaData.overview = json['overview'] ?? 'no data exist';
 
     // 3. Extract Deep TMDB Details
     final detail = MovieDetail()
@@ -1738,12 +1690,12 @@ class Movie {
     }
 
     // Handle Complex Nested Arrays safely
-    if (json['genres'] != null) {
-      detail.genres = (json['genres'] as List)
-          .map((g) => Genre.fromJson(g))
-          .toList();
-      movie.metaData.genres = detail.genres.map((g) => g.name).toList();
-    }
+    // if (json['genres'] != null) {
+    //   detail.genres = (json['genres'] as List)
+    //       .map((g) => Genre.fromJson(g))
+    //       .toList();
+    //   movie.metaData = detail.genres.map((g) => g.name).toList();
+    // }
     if (json['origin_country'] != null) {
       detail.originCountry = List<String>.from(json['origin_country']);
     }
@@ -1762,11 +1714,11 @@ class Movie {
           .map((l) => SpokenLanguage.fromJson(l))
           .toList();
     }
-    if (json['credits'] != null) {
-      movie.metaData.credits = MovieCredits.fromJson(
-        Map<String, dynamic>.from(json['credits']),
-      );
-    }
+    // if (json['credits'] != null) {
+    //   movie.moviedetail.credits = MovieCredits.fromJson(
+    //     Map<String, dynamic>.from(json['credits']),
+    //   );
+    // }
     // Keyword structure safe parsing logic
     var parsedKeywords = <Keyword>[];
     if (json['keywords'] != null && json['keywords']['keywords'] != null) {
@@ -1781,7 +1733,7 @@ class Movie {
     detail.keywords = parsedKeywords;
 
     // Attach populated details packet directly to the base tracking object
-    movie.metaData.movieDetail = detail;
+     movie.moviedetail = detail;
     return movie;
   }
 
@@ -1793,12 +1745,12 @@ class Movie {
       coverPath != null ? 'https://db.inosuke.sbs/t/p/w500$coverPath' : '';
 
   String get fullBackdropPath {
-    final path = metaData.movieDetail?.backdropPath;
+    final path = moviedetail.backdropPath;
     return path != null ? 'https://db.inosuke.sbs/t/p/w780$path' : '';
   }
 
   String get formattedRuntime {
-    final runtime = metaData.movieDetail?.runtime;
+    final runtime = moviedetail.runtime;
     if (runtime == null || runtime == 0) return 'N/A';
     final hours = runtime ~/ 60;
     final minutes = runtime % 60;
@@ -1806,20 +1758,20 @@ class Movie {
   }
 
   String get formattedBudget {
-    final budget = metaData.movieDetail?.budget;
+    final budget = moviedetail.budget;
     if (budget == null || budget == 0) return 'N/A';
     return '\$${(budget / 1000000).toStringAsFixed(1)}M';
   }
 
   String get formattedRevenue {
-    final revenue = metaData.movieDetail?.revenue;
+    final revenue = moviedetail.revenue;
     if (revenue == null || revenue == 0) return 'N/A';
     return '\$${(revenue / 1000000).toStringAsFixed(1)}M';
   }
 
   String get genresText {
-    if (metaData.genres.isEmpty) return 'N/A';
-    return metaData.genres.join(', ');
+    if (moviedetail.genres.isEmpty) return 'N/A';
+    return moviedetail.genres.join(', ');
   }
 }
 
@@ -1839,7 +1791,9 @@ class MangaSeries {
   late String coverPath;
   late String description;
   IsarUserProgress? progress;
-  late MetaData? metadata;
+  String? onlineCoverUrl;
+  String? anilistId;
+  String? malId;
   @Backlink(to: 'seriesLink')
   final chapters = IsarLinks<MangaChapter>();
 }
@@ -2112,4 +2066,39 @@ class Episode {
 
   // Link details directly here!
   EpisodeDetails? details;
+}
+
+class AnimeNode {
+  final AnimeItem node;
+
+  AnimeNode({required this.node});
+
+  factory AnimeNode.fromJson(Map<String, dynamic> json) {
+    return AnimeNode(node: AnimeItem.fromJson(json['node']));
+  }
+}
+
+class AnimeItem {
+  final int id;
+  final String title;
+  final MainPicture? mainPicture;
+  final String? synopsis;
+
+  AnimeItem({
+    required this.id,
+    required this.title,
+    this.mainPicture,
+    this.synopsis,
+  });
+
+  factory AnimeItem.fromJson(Map<String, dynamic> json) {
+    return AnimeItem(
+      id: json['id'] ?? 0,
+      title: json['title'] ?? '',
+      mainPicture: json['main_picture'] != null
+          ? MainPicture.fromJson(json['main_picture'])
+          : null,
+      synopsis: json['synopsis'] as String?,
+    );
+  }
 }

@@ -112,25 +112,12 @@ class ExtractionService {
         pp.lastReadAt = DateTime(0);
         pp.lastReadChapterId = '';
         pp.lastReadPage = 0;
-        MetaData? md = MetaData();
-        md.title = p.basenameWithoutExtension(archiveFile.path);
-        md.backgrounds = [];
-        md.covers = [];
-        md.credits = null;
-        md.genres = [];
-        md.malAlterTiles = null;
-        md.malMainPic = null;
-        md.malRecommand = null;
-        md.malSeriesDetail = null;
-        md.malStudio = null;
-        md.mangaCoverImage = null;
-        md.mangaData = null;
-        md.mangaMedia = null;
-        md.mangaTitles = null;
-        md.movieDetail = null;
-        md.tags = [];
+
         MangaSeries ms = MangaSeries();
-        ms.metadata = md;
+        ms.anilistId = '';
+        ms.malId = '';
+        ms.onlineCoverUrl = '';
+      
         ms.seriesId = seriesId;
         ms.title = p.basenameWithoutExtension(archiveFile.path);
         ms.coverPath = _findFirstAvailablePage(
@@ -258,26 +245,12 @@ class ExtractionService {
         pp.lastReadAt = DateTime(0);
         pp.lastReadChapterId = '';
         pp.lastReadPage = 0;
-  MetaData? md = MetaData();
-        md.title = p.basenameWithoutExtension(archiveFile.path);
-        md.backgrounds = [];
-        md.covers = [];
-        md.credits = null;
-        md.genres = [];
-        md.malAlterTiles = null;
-        md.malMainPic = null;
-        md.malRecommand = null;
-        md.malSeriesDetail = null;
-        md.malStudio = null;
-        md.mangaCoverImage = null;
-        md.mangaData = null;
-        md.mangaMedia = null;
-        md.mangaTitles = null;
-        md.movieDetail = null;
-        md.tags = [];
-                MangaSeries ms = MangaSeries();
-        ms.metadata = md;
-        ms.seriesId = seriesId;
+
+        MangaSeries ms = MangaSeries();
+         ms.anilistId = '';
+        ms.malId = '';
+        ms.onlineCoverUrl = '';
+       ms.seriesId = seriesId;
         ms.title = p.basenameWithoutExtension(archiveFile.path);
         ms.coverPath = _findFirstAvailablePage(
           extractedChapters.first.pathToChapterData,
@@ -423,25 +396,11 @@ class ExtractionService {
           pp.lastReadAt = DateTime(0);
           pp.lastReadChapterId = '';
           pp.lastReadPage = 0;
-  MetaData? md = MetaData();
-        md.title = p.basenameWithoutExtension(archiveFile.path);
-        md.backgrounds = [];
-        md.covers = [];
-        md.credits = null;
-        md.genres = [];
-        md.malAlterTiles = null;
-        md.malMainPic = null;
-        md.malRecommand = null;
-        md.malSeriesDetail = null;
-        md.malStudio = null;
-        md.mangaCoverImage = null;
-        md.mangaData = null;
-        md.mangaMedia = null;
-        md.mangaTitles = null;
-        md.movieDetail = null;
-        md.tags = [];          MangaSeries ms = MangaSeries();
-          ms.metadata = md;
-          ms.seriesId = seriesId;
+          MangaSeries ms = MangaSeries();
+            ms.anilistId = '';
+        ms.malId = '';
+        ms.onlineCoverUrl = '';
+      ms.seriesId = seriesId;
           ms.title = p.basenameWithoutExtension(archiveFile.path);
           ms.coverPath = _findFirstAvailablePage(
             extractedChapters.first.pathToChapterData,
@@ -527,7 +486,7 @@ class ExtractionService {
 
       // Map panels to URI-encoded JSON strings to safely match your models.dart getter
       if (panels != null && panels != []) {
-        final List<String> serializedPanels = panels!.map((pan) {
+        final List<String> serializedPanels = panels.map((pan) {
           return Uri.encodeComponent(jsonEncode(pan.toJson()));
         }).toList();
 

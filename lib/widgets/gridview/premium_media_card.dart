@@ -38,7 +38,7 @@ class _PremiumMediaCardState extends State<PremiumMediaCard> with SingleTickerPr
   @override
   Widget build(BuildContext context) {
     // Theme setup: Dark Blue and Crimson Red Accent
-    final themeBgColor = const Color(0xFF0A1128).withOpacity(0.7); 
+    final themeBgColor = const Color(0xFF0A1128).withValues(alpha: 0.7); 
     final accentColor = const Color(0xFFD90429);
 
     return Hero(
@@ -65,7 +65,7 @@ class _PremiumMediaCardState extends State<PremiumMediaCard> with SingleTickerPr
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: _isExpanded ? accentColor.withOpacity(0.4) : Colors.black38,
+                color: _isExpanded ? accentColor.withValues(alpha: 0.4) : Colors.black38,
                 blurRadius: _isExpanded ? 16 : 8,
                 spreadRadius: _isExpanded ? 2 : 0,
               )
@@ -90,9 +90,9 @@ class _PremiumMediaCardState extends State<PremiumMediaCard> with SingleTickerPr
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
                           colors: [
-                            Colors.black.withOpacity(0.1),
-                            themeBgColor.withOpacity(0.4),
-                            themeBgColor.withOpacity(0.95),
+                            Colors.black.withValues(alpha: 0.1),
+                            themeBgColor.withValues(alpha: 0.4),
+                            themeBgColor.withValues(alpha: 0.95),
                           ],
                           stops: const [0.0, 0.5, 0.9],
                         ),
@@ -144,7 +144,7 @@ class _PremiumMediaCardState extends State<PremiumMediaCard> with SingleTickerPr
                             AnimatedCrossFade(
                               firstChild: Text(
                                 widget.overview,
-                                style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12),
+                                style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 12),
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                               ),

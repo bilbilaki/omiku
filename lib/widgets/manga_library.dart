@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:omiku/main.dart';
 import 'package:omiku/models/models.dart';
 import 'package:omiku/services/extraction_service.dart';
+import 'package:omiku/widgets/gridview/premium_media_card.dart';
 import 'package:omiku/widgets/library_dialog.dart';
 import 'package:omiku/widgets/manga_details_screen.dart';
 import 'package:path_provider/path_provider.dart';
@@ -297,19 +298,34 @@ Future<void> _pickAndProcessMangaFile(BuildContext context) async {
                         ),
                       )
                     : GridView.builder(
-                        padding: const EdgeInsets.all(8.0),
-                        gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 2, // Two items per row
-                              crossAxisSpacing: 16.0,
-                              mainAxisSpacing: 16.0,
-                              childAspectRatio:
-                                  0.7, // Adjust as needed for cover ratio
-                            ),
+                     padding: const EdgeInsets.all(14),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 14,
+                    mainAxisSpacing: 14,
+                    childAspectRatio: 0.72, // Perfect layout alignment avoiding height overflow
+                  ),
                         itemCount: library.length,
                         itemBuilder: (context, index) {
                           final series = library[index];
-                          return _MangaSeriesCard(series: series);
+                    final chapterCount = series.chapters.length;
+                    final progress = _calculateSeriesProgress(series);
+                          return  PremiumMediaCard(
+                      id: series.seriesId,
+                      title: series.title,
+                      overview: series.description,
+                      imagePath: series.onlineCoverUrl ?? series.coverPath,
+                      badgeText: '$chapterCount Ch.',
+                      rating: null, // Average score could be loaded from online details if fetched
+                      progress: progress,
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => MangaDetailScreen(series: series),
+                          ),
+                        ).then((_) => _loadLibrary());
+                      },
+                    );
                         },
                       ),
               ),
@@ -360,82 +376,20 @@ Future<void> _pickAndProcessMangaFile(BuildContext context) async {
     );
   }
 }
+  /// Calculates individual reading progress representing cumulative stats across the series chapters
+  double _calculateSeriesProgress(MangaSeries series) {
+    if (series.chapters.isEmpty) return 0.0;
+    double cumulativeProgress = 0.0;
+    int measurableChapters = 0;
 
-class _MangaSeriesCard extends StatelessWidget {
-  final MangaSeries series;
+    for (final ch in series.chapters) {
+      if (ch.totalPages > 0) {
+      //  cumulativeProgress += ch.progress / ch.totalPages;
+        measurableChapters++;
+      }
+    }
 
-  const _MangaSeriesCard({required this.series});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (context) => MangaDetailScreen(series: series),
-          ),
-        );
-      },
-      child: Card(
-        color: Colors.grey[850], // Dark card background
-        clipBehavior: Clip.antiAlias,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        elevation: 5,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Hero(
-                tag:
-                    'series_cover_${series.id}', // Unique tag for Hero animation
-                child:
-                    series.coverPath.isNotEmpty &&
-                        File(series.coverPath).existsSync()
-                    ? Image.file(
-                        File(series.coverPath),
-                        fit: BoxFit.cover,
-                        width: double.infinity,
-                      )
-                    : Container(
-                        color: Colors.grey[700],
-                        alignment: Alignment.center,
-                        child: const Icon(
-                          Icons.image_not_supported,
-                          color: Colors.white54,
-                          size: 50,
-                        ),
-                      ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Text(
-                series.title,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8.0),
-              child: FutureBuilder<List<MangaChapter>>(
-                future: db.getChaptersForSeries(series.seriesId),
-                builder: (context, snapshot) {
-                  final count = snapshot.data?.length ?? 0;
-                  return Text(
-                    '$count Chapters',
-                    style: const TextStyle(color: Colors.white70, fontSize: 12),
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+    return measurableChapters > 0
+        ? (cumulativeProgress / measurableChapters).clamp(0.0, 1.0)
+        : 0.0;
   }
-}

@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:core';
 import 'package:http/http.dart' as http;
-import 'package:isar/isar.dart';
 import '../env.dart';
 import '../models/models.dart';
 import 'database.dart';
@@ -29,11 +28,11 @@ class MovieService {
     final String tmdbIdStr = id.toString();
     Movie? movie = await _db.getMovieByTmdbId(tmdbIdStr);
 
-    if (movie != null && movie.metaData.movieDetail != null && movie.metaData.credits != null) {
+    if (movie != null) {
       List<Movie> recommendations = await _fetchAndCacheRecommendations(tmdbIdStr);
       return {
         'details': movie,
-        'credits': movie.metaData.credits!,
+        //'credits': movie.moviedetail.credits!,
         'recommendations': recommendations,
       };
     }
@@ -51,7 +50,7 @@ class MovieService {
     final String tmdbIdStr = id.toString();
     Movie? movie = await _db.getMovieByTmdbId(tmdbIdStr);
 
-    if (movie != null && movie.metaData.movieDetail != null) {
+    if (movie != null) {
       return movie;
     }
 
@@ -80,14 +79,14 @@ class MovieService {
     Movie movie = await _db.getMovieByTmdbId(movieId.toString()) ?? Movie();
     movie.tmdbId = movieId.toString();
     movie.metaData.title = jsonMap['title'] ?? '';
-    movie.metaData.description = jsonMap['overview'] ?? '';
-    movie.metaData.movieDetail = MovieDetail.fromJson(jsonMap);
+    movie.metaData.overview = jsonMap['overview'] ?? '';
+    movie.moviedetail = MovieDetail.fromJson(jsonMap);
     
-    if (jsonMap['genres'] != null) {
-      movie.metaData.genres = (jsonMap['genres'] as List)
-          .map((g) => g['name'].toString())
-          .toList();
-    }
+    // if (jsonMap['genres'] != null) {
+    //   movie.moviedetail.genres = (jsonMap['genres'] as List)
+    //       .map((g) => g['name'].toString())
+    //       .toList();
+    // }
 
     await _db.put<Movie>(movie);
     return movie;
@@ -99,14 +98,14 @@ class MovieService {
     Series series = await _db.getSeriesByTmdbId(tvShowId.toString()) ?? Series();
     series.tmdbId = tvShowId.toString();
     series.metaData.title = jsonMap['name'] ?? '';
-    series.metaData.description = jsonMap['overview'] ?? '';
+    series.metaData.overview = jsonMap['overview'] ?? '';
     series.tvDetails = TvShowDetail.fromJson(jsonMap);
 
-    if (jsonMap['genres'] != null) {
-      series.metaData.genres = (jsonMap['genres'] as List)
-          .map((g) => g['name'].toString())
-          .toList();
-    }
+    // if (jsonMap['genres'] != null) {
+    //   series.metaData.genres = (jsonMap['genres'] as List)
+    //       .map((g) => g['name'].toString())
+    //       .toList();
+    // }
 
     await _db.put<Series>(series);
     return series;
@@ -132,7 +131,7 @@ class MovieService {
 
       Movie movie = await _db.getMovieByTmdbId(movieId.toString()) ?? Movie();
       movie.tmdbId = movieId.toString();
-      movie.metaData.credits = credits;
+   //   movie.moviedetail.credits = credits;
 
       await _db.put<Movie>(movie);
       return credits;
@@ -158,11 +157,9 @@ class MovieService {
         Movie movie = await _db.getMovieByTmdbId(id.toString()) ?? Movie();
         movie.tmdbId = id.toString();
         movie.metaData.title = itemMap['title'] ?? '';
-        movie.metaData.description = itemMap['overview'] ?? '';
+        movie.metaData.overview = itemMap['overview'] ?? '';
         
-        if (movie.metaData.movieDetail == null) {
-          movie.metaData.movieDetail = MovieDetail.fromJson(itemMap);
-        }
+        movie.moviedetail ??= MovieDetail.fromJson(itemMap);
 
         await _db.put<Movie>(movie);
         recommendedMovies.add(movie);
@@ -236,8 +233,8 @@ class MovieService {
         final movie = Movie();
         movie.tmdbId = itemJson['id']?.toString();
         movie.metaData.title = itemJson['title'] ?? '';
-        movie.metaData.description = itemJson['overview'] ?? '';
-        movie.metaData.movieDetail = MovieDetail.fromJson(itemJson);
+        movie.metaData.overview = itemJson['overview'] ?? '';
+        movie.moviedetail = MovieDetail.fromJson(itemJson);
         return movie;
       });
     }
@@ -259,7 +256,7 @@ class MovieService {
         final series = Series();
         series.tmdbId = itemJson['id']?.toString();
         series.metaData.title = itemJson['name'] ?? '';
-        series.metaData.description = itemJson['overview'] ?? '';
+        series.metaData.overview = itemJson['overview'] ?? '';
         series.tvDetails = TvShowDetail.fromJson(itemJson);
         return series;
       });

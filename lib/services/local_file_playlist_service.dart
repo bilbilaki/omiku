@@ -70,7 +70,9 @@ class LocalFilePlaylistService {
       debugPrint(
         'Found ${videoFiles.length} video files in $parentPath (sorted A-Z 0-9)',
       );
-      videoFiles.forEach((f) => debugPrint('  - ${p.basename(f.path)}'));
+      for (var f in videoFiles) {
+        debugPrint('  - ${p.basename(f.path)}');
+      }
 
       // Step 3: Find current file index in sorted list
       int currentFileIndex = -1;
@@ -110,12 +112,14 @@ for (int i = 0; i < audioFiles.length; i++) {
       if (currentFileIndex > 0) {
         reorganizedFiles.addAll(targetList=="video"?videoFiles.sublist(0, currentFileIndex):audioFiles.sublist(0,currentFileIndex));
         debugPrint(
-          'Moved ${currentFileIndex} files before current to end of playlist',
+          'Moved $currentFileIndex files before current to end of playlist',
         );
       }
 
       debugPrint('Reorganized playlist order:');
-      reorganizedFiles.forEach((f) => debugPrint('  - ${p.basename(f.path)}'));
+      for (var f in reorganizedFiles) {
+        debugPrint('  - ${p.basename(f.path)}');
+      }
 
       // Convert to Media objects
       final mediaList = reorganizedFiles
