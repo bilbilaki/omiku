@@ -1,32 +1,35 @@
-
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart' as pr;
 import 'package:media_kit/media_kit.dart';
+import 'package:omiku/providers/app_state.dart';
 import 'package:omiku/services/database.dart';
-import 'package:omiku/services/panel_detector_service.dart';
-import 'package:omiku/widgets/manga_library.dart';
+import 'package:omiku/services/manga/panel_detector_service.dart';
+import 'package:omiku/splash.dart';
+import 'package:omiku/widgets/appUI/app_center_frame.dart';
+import 'package:omiku/widgets/appUI/download/download.dart';
+import 'package:omiku/widgets/manga/manga_library.dart';
 import 'package:path_provider/path_provider.dart';
-// import 'package:omiku/models/panel_debug_painter.dart'; // REMOVED: Not needed in final reader
-// import 'package:omiku/widgets/manga_reader.dart'; // Replaced by our new screens and modified reader
 import 'package:provider/provider.dart';
 import 'package:telegram_ios_ui_kit/telegram_ios_ui_kit.dart';
-// import 'package:ultralytics_yolo/ultralytics_yolo.dart'; // Handled by PanelDetectionService
-// import 'package:image_picker/image_picker.dart'; // Handled by LibraryScreen
-
-// NEW SERVICE IMPORTS
-import 'package:omiku/services/extraction_service.dart';
+import 'package:go_router/go_router.dart';
+import 'package:omiku/services/manga/extraction_service.dart';
 import 'package:uuid/uuid.dart';
+import 'package:cross_platform_video_thumbnails/cross_platform_video_thumbnails.dart';
 
-// NEW SCREEN IMPORTS
-// import 'package:omiku/screens/manga_detail_screen.dart'; // Not directly in main.dart
-// import 'package:omiku/screens/chapter_reader_screen.dart'; // Not directly in main.dart
-// import 'package:uuid/uuid.dart'; // Only needed in YOLODemo for dummy IDs
+part 'router.dart';
+
+final downloadManager = DownloadListManager();
+
 Uuid uuid = Uuid();
 String appSupportDir = '';
 String appCacheDir = '';
 late DatabaseService db;
+late DatabaseService dbService;
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   MediaKit.ensureInitialized();
+  await CrossPlatformVideoThumbnails.initialize();
+
   await DatabaseService().init();
   db = DatabaseService();
   final telegramTheme = TelegramThemeData.dark();
@@ -46,18 +49,20 @@ Future<void> main() async {
         ),
         Provider<ExtractionService>(create: (context) => ExtractionService()),
       ],
-      child: TelegramTheme(
-        data: telegramTheme,
-        child: MaterialApp(
-          theme: telegramTheme.toThemeData(),
-          debugShowCheckedModeBanner: false,
-          home: LibraryScreen(), // Start with the LibraryScreen
+      child: pr.ProviderScope(
+        overrides: [
+          settingsServiceProvider.overrideWith((ref) => settingsService),
+        ],
+        child: TelegramTheme(
+          data: telegramTheme,
+          child: MaterialApp.router(
+            routerConfig: _router,
+            theme: telegramTheme.toThemeData(),
+            debugShowCheckedModeBanner: false,
+            //   home: LibraryScreen(), // Start with the LibraryScreen
+          ),
         ),
       ),
     ),
   );
 }
-
-// REMOVED: YOLODemo and SplashScreen as they are no longer the main entry points
-// If you still need YOLODemo for testing single image detection, you can navigate to it
-// from the LibraryScreen or create a dedicated debug route.

@@ -2,13 +2,15 @@ import 'package:flutter/foundation.dart';
 import 'package:isar/isar.dart';
 import 'package:omiku/models/models.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 
-class DatabaseService {
+class DatabaseService with ChangeNotifier {
   // Singleton pattern so you don't accidentally open multiple instances
   static final DatabaseService _instance = DatabaseService._internal();
   factory DatabaseService() => _instance;
   DatabaseService._internal();
-
+  
+  // ... rest of your code stays exactly the same
   late Isar _isar;
   late Isar isar;
 
@@ -29,12 +31,32 @@ class DatabaseService {
         MangaSeriesSchema,
         MangaChapterSchema,
         ChapterPageSchema,
+        LibraryConfigSchema,
       ],
       directory: dir.path,
       inspector: true, // Enables a web browser UI to look inside your DB during debug mode!
     );
     isar = _isar;
     debugPrint('[DatabaseService] Isar database successfully opened.');
+  }
+
+Future<bool> requestAllFilesAccess() async {
+    var status = await Permission.manageExternalStorage.status;
+    
+    if (status.isGranted) {
+      debugPrint('[DatabaseService] All Files Access is already granted.');
+      return true;
+    }
+
+    status = await Permission.manageExternalStorage.request();
+
+    if (status.isGranted) {
+      debugPrint('[DatabaseService] All Files Access granted by user.');
+      return true;
+    } else {
+      debugPrint('[DatabaseService] All Files Access denied by user.');
+      return false;
+    }
   }
 
   // ==========================================
@@ -54,6 +76,8 @@ class DatabaseService {
       if (item is MangaChapter) await _isar.mangaChapters.put(item);
       if (item is MangaSeries) await _isar.mangaSeries.put(item);
       if (item is ChapterPage) await _isar.chapterPages.put(item);
+            if (item is LibraryConfig) await _isar.libraryConfigs.put(item);
+
     });
     debugPrint('[DatabaseService] put() completed for item type: $T');
   }
@@ -87,6 +111,9 @@ class DatabaseService {
       if (items is List<ChapterPage>) {
         await _isar.chapterPages.putAll(items as List<ChapterPage>);
       }
+       if (items is List<LibraryConfig>) {
+        await _isar.libraryConfigs.putAll(items as List<LibraryConfig>);
+      }
     });
     debugPrint('[DatabaseService] putAll() completed for items of type: $T');
   }
@@ -104,6 +131,8 @@ class DatabaseService {
     if (T == MangaSeries) result = await _isar.mangaSeries.get(id) as T?;
     if (T == MangaChapter) result = await _isar.mangaChapters.get(id) as T?;
     if (T == ChapterPage) result = await _isar.chapterPages.get(id) as T?;
+        if (T == LibraryConfig) result = await _isar.libraryConfigs.get(id) as T?;
+
 
     debugPrint('[DatabaseService] get() result for type $T (ID: $id) found: ${result != null}');
     return result;
@@ -122,6 +151,8 @@ class DatabaseService {
     if (T == MangaSeries) results = await _isar.mangaSeries.where().findAll() as List<T>;
     if (T == MangaChapter) results = await _isar.mangaChapters.where().findAll() as List<T>;
     if (T == ChapterPage) results = await _isar.chapterPages.where().findAll() as List<T>;
+        if (T == LibraryConfig) results = await _isar.libraryConfigs.where().findAll() as List<T>;
+
 
     results ??= [];
     debugPrint('[DatabaseService] getAll() for type $T returned ${results.length} records.');
@@ -141,6 +172,8 @@ class DatabaseService {
       if (T == MangaSeries) return await _isar.mangaSeries.delete(id);
       if (T == MangaChapter) return await _isar.mangaChapters.delete(id);
       if (T == ChapterPage) return await _isar.chapterPages.delete(id);
+            if (T == LibraryConfig) return await _isar.libraryConfigs.delete(id);
+
       return false;
     });
     debugPrint('[DatabaseService] delete() for type $T, ID: $id status: $success');
@@ -563,5 +596,145 @@ class DatabaseService {
   Future<Series?> getSeriesByTmdbId(String tmdbId) async {
     debugPrint('[VideoQuery] getSeriesByTmdbId() fetching Series TMDB ID: $tmdbId');
     return await _isar.series.where().tmdbIdEqualTo(tmdbId).findFirst();
+  }
+  // ==========================================
+  // TEXT & SMART FALLBACK SEARCH HELPERS
+  // ==========================================
+
+// ==========================================
+  // TEXT & SMART FALLBACK SEARCH HELPERS
+  // ==========================================
+
+  /// Search Series by a title string (Case-Insensitive lookup)
+  Future<List<Series>> searchSeriesByTitle(String query) async {
+    if (query.trim().isEmpty) return [];
+    debugPrint('[VideoQuery] searchSeriesByTitle: $query');
+    return await _isar.series
+        .filter()
+        .titleContains(query, caseSensitive: false)
+        .findAll();
+  }
+
+  /// Search Movies by a title string (Case-Insensitive lookup)
+  Future<List<Movie>> searchMoviesByTitle(String query) async {
+    if (query.trim().isEmpty) return [];
+    debugPrint('[VideoQuery] searchMoviesByTitle: $query');
+    return await _isar.movies
+        .filter()
+        .titleContains(query, caseSensitive: false)
+        .findAll();
+  }
+
+  /// Search Manga by Title string (Case-Insensitive lookup)
+  Future<List<MangaSeries>> searchMangaByTitle(String query) async {
+    if (query.trim().isEmpty) return [];
+    debugPrint('[MangaQuery] searchMangaByTitle: $query');
+    return await _isar.mangaSeries
+        .filter()
+        .titleContains(query, caseSensitive: false)
+        .findAll();
+  }
+
+  /// The Super Helper: Dynamic fallback search across multiple media types
+  /// Returns a Map categorized by entity lists.
+  Future<Map<String, List<dynamic>>> superSmartSearch(String input) async {
+    final String cleanInput = input.trim();
+    if (cleanInput.isEmpty) return {'series': [], 'movies': [], 'manga': []};
+
+    debugPrint('[SuperQuery] Starting aggressive fallback search for: "$cleanInput"');
+
+    final List<Series> seriesResults = [];
+    final List<Movie> movieResults = [];
+    final List<MangaSeries> mangaResults = [];
+
+    // Try parsing an integer ID out of the string for direct Isar ID matching
+    final int? possibleId = int.tryParse(cleanInput);
+
+    // 1. --- SEARCH SERIES ---
+    if (possibleId != null) {
+      final item = await _isar.series.get(possibleId);
+      if (item != null) seriesResults.add(item);
+    }
+    
+    // Fallback text searches on title, tmdbId, or other fields
+    final matchedSeries = await _isar.series
+        .filter()
+        .titleContains(cleanInput, caseSensitive: false)
+        .or()
+        .tmdbIdEqualTo(cleanInput)
+        .findAll();
+    
+    for (var item in matchedSeries) {
+      if (!seriesResults.any((e) => e.id == item.id)) seriesResults.add(item);
+    }
+
+    // 2. --- SEARCH MOVIES ---
+    if (possibleId != null) {
+      final item = await _isar.movies.get(possibleId);
+      if (item != null) movieResults.add(item);
+    }
+
+    final matchedMovies = await _isar.movies
+        .filter()
+        .titleContains(cleanInput, caseSensitive: false)
+        .or()
+        .tmdbIdEqualTo(cleanInput)
+        .findAll();
+
+    for (var item in matchedMovies) {
+      if (!movieResults.any((e) => e.id == item.id)) movieResults.add(item);
+    }
+
+    // 3. --- SEARCH MANGA ---
+    if (possibleId != null) {
+      final item = await _isar.mangaSeries.get(possibleId);
+      if (item != null) mangaResults.add(item);
+    }
+
+    final matchedManga = await _isar.mangaSeries
+        .filter()
+        .titleContains(cleanInput, caseSensitive: false)
+        .or()
+        .authorContains(cleanInput, caseSensitive: false)
+        .or()
+        .seriesIdEqualTo(cleanInput)
+        .findAll();
+
+    for (var item in matchedManga) {
+      if (!mangaResults.any((e) => e.id == item.id)) mangaResults.add(item);
+    }
+
+    debugPrint('[SuperQuery] Execution completed. Found ${seriesResults.length} series, ${movieResults.length} movies, ${mangaResults.length} manga items.');
+
+    return {
+      'series': seriesResults,
+      'movies': movieResults,
+      'manga': mangaResults,
+    };
+  }
+
+  Stream<List<LibraryConfig>> watchLibraries() {
+    return _isar.libraryConfigs.where().watch(fireImmediately: true);
+  }
+
+  /// Create or update a media library
+  Future<void> saveLibrary(LibraryConfig config) async {
+    await _isar.writeTxn(() async {
+      await _isar.libraryConfigs.put(config);
+    });
+    notifyListeners(); // Updates Riverpod listeners
+  }
+
+  /// Remove a media library config completely
+  Future<void> deleteLibrary(Id id) async {
+    await _isar.writeTxn(() async {
+      await _isar.libraryConfigs.delete(id);
+      
+      // Emby behavior option: Clean up or untag items that were linked to this library config
+      // Example: 
+      // final orphanedMovies = await _isar.movies.filter().libraryConfigIdEqualTo(id).findAll();
+      // ... process untagging or deleting orphaned media file metadata here
+    });
+    notifyListeners();
   }
 }

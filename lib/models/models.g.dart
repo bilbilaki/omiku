@@ -57,35 +57,45 @@ const MovieSchema = CollectionSchema(
       name: r'genresText',
       type: IsarType.string,
     ),
-    r'malId': PropertySchema(
+    r'libraryConfigId': PropertySchema(
       id: 8,
+      name: r'libraryConfigId',
+      type: IsarType.long,
+    ),
+    r'malId': PropertySchema(
+      id: 9,
       name: r'malId',
       type: IsarType.string,
     ),
     r'metaData': PropertySchema(
-      id: 9,
+      id: 10,
       name: r'metaData',
       type: IsarType.object,
       target: r'MetaData',
     ),
     r'movieId': PropertySchema(
-      id: 10,
+      id: 11,
       name: r'movieId',
       type: IsarType.string,
     ),
     r'moviedetail': PropertySchema(
-      id: 11,
+      id: 12,
       name: r'moviedetail',
       type: IsarType.object,
       target: r'MovieDetail',
     ),
     r'playableFileId': PropertySchema(
-      id: 12,
+      id: 13,
       name: r'playableFileId',
       type: IsarType.string,
     ),
+    r'title': PropertySchema(
+      id: 14,
+      name: r'title',
+      type: IsarType.string,
+    ),
     r'tmdbId': PropertySchema(
-      id: 13,
+      id: 15,
       name: r'tmdbId',
       type: IsarType.string,
     )
@@ -104,6 +114,32 @@ const MovieSchema = CollectionSchema(
       properties: [
         IndexPropertySchema(
           name: r'movieId',
+          type: IndexType.hash,
+          caseSensitive: true,
+        )
+      ],
+    ),
+    r'title': IndexSchema(
+      id: -7636685945352118059,
+      name: r'title',
+      unique: true,
+      replace: true,
+      properties: [
+        IndexPropertySchema(
+          name: r'title',
+          type: IndexType.hash,
+          caseSensitive: true,
+        )
+      ],
+    ),
+    r'playableFileId': IndexSchema(
+      id: 2775845722960449292,
+      name: r'playableFileId',
+      unique: true,
+      replace: true,
+      properties: [
+        IndexPropertySchema(
+          name: r'playableFileId',
           type: IndexType.hash,
           caseSensitive: true,
         )
@@ -145,6 +181,19 @@ const MovieSchema = CollectionSchema(
           name: r'anilistId',
           type: IndexType.hash,
           caseSensitive: true,
+        )
+      ],
+    ),
+    r'libraryConfigId': IndexSchema(
+      id: -1052534281605808785,
+      name: r'libraryConfigId',
+      unique: true,
+      replace: true,
+      properties: [
+        IndexPropertySchema(
+          name: r'libraryConfigId',
+          type: IndexType.value,
+          caseSensitive: false,
         )
       ],
     )
@@ -214,6 +263,12 @@ int _movieEstimateSize(
     }
   }
   {
+    final value = object.title;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
     final value = object.tmdbId;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
@@ -236,22 +291,24 @@ void _movieSerialize(
   writer.writeString(offsets[5], object.fullBackdropPath);
   writer.writeString(offsets[6], object.fullPosterPath);
   writer.writeString(offsets[7], object.genresText);
-  writer.writeString(offsets[8], object.malId);
+  writer.writeLong(offsets[8], object.libraryConfigId);
+  writer.writeString(offsets[9], object.malId);
   writer.writeObject<MetaData>(
-    offsets[9],
+    offsets[10],
     allOffsets,
     MetaDataSchema.serialize,
     object.metaData,
   );
-  writer.writeString(offsets[10], object.movieId);
+  writer.writeString(offsets[11], object.movieId);
   writer.writeObject<MovieDetail>(
-    offsets[11],
+    offsets[12],
     allOffsets,
     MovieDetailSchema.serialize,
     object.moviedetail,
   );
-  writer.writeString(offsets[12], object.playableFileId);
-  writer.writeString(offsets[13], object.tmdbId);
+  writer.writeString(offsets[13], object.playableFileId);
+  writer.writeString(offsets[14], object.title);
+  writer.writeString(offsets[15], object.tmdbId);
 }
 
 Movie _movieDeserialize(
@@ -264,22 +321,24 @@ Movie _movieDeserialize(
   object.anilistId = reader.readStringOrNull(offsets[0]);
   object.coverPath = reader.readStringOrNull(offsets[1]);
   object.id = id;
-  object.malId = reader.readStringOrNull(offsets[8]);
+  object.libraryConfigId = reader.readLong(offsets[8]);
+  object.malId = reader.readStringOrNull(offsets[9]);
   object.metaData = reader.readObjectOrNull<MetaData>(
-        offsets[9],
+        offsets[10],
         MetaDataSchema.deserialize,
         allOffsets,
       ) ??
       MetaData();
-  object.movieId = reader.readStringOrNull(offsets[10]);
+  object.movieId = reader.readStringOrNull(offsets[11]);
   object.moviedetail = reader.readObjectOrNull<MovieDetail>(
-        offsets[11],
+        offsets[12],
         MovieDetailSchema.deserialize,
         allOffsets,
       ) ??
       MovieDetail();
-  object.playableFileId = reader.readStringOrNull(offsets[12]);
-  object.tmdbId = reader.readStringOrNull(offsets[13]);
+  object.playableFileId = reader.readStringOrNull(offsets[13]);
+  object.title = reader.readStringOrNull(offsets[14]);
+  object.tmdbId = reader.readStringOrNull(offsets[15]);
   return object;
 }
 
@@ -307,26 +366,30 @@ P _movieDeserializeProp<P>(
     case 7:
       return (reader.readString(offset)) as P;
     case 8:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readLong(offset)) as P;
     case 9:
+      return (reader.readStringOrNull(offset)) as P;
+    case 10:
       return (reader.readObjectOrNull<MetaData>(
             offset,
             MetaDataSchema.deserialize,
             allOffsets,
           ) ??
           MetaData()) as P;
-    case 10:
-      return (reader.readStringOrNull(offset)) as P;
     case 11:
+      return (reader.readStringOrNull(offset)) as P;
+    case 12:
       return (reader.readObjectOrNull<MovieDetail>(
             offset,
             MovieDetailSchema.deserialize,
             allOffsets,
           ) ??
           MovieDetail()) as P;
-    case 12:
-      return (reader.readStringOrNull(offset)) as P;
     case 13:
+      return (reader.readStringOrNull(offset)) as P;
+    case 14:
+      return (reader.readStringOrNull(offset)) as P;
+    case 15:
       return (reader.readStringOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -396,6 +459,112 @@ extension MovieByIndex on IsarCollection<Movie> {
 
   List<Id> putAllByMovieIdSync(List<Movie> objects, {bool saveLinks = true}) {
     return putAllByIndexSync(r'movieId', objects, saveLinks: saveLinks);
+  }
+
+  Future<Movie?> getByTitle(String? title) {
+    return getByIndex(r'title', [title]);
+  }
+
+  Movie? getByTitleSync(String? title) {
+    return getByIndexSync(r'title', [title]);
+  }
+
+  Future<bool> deleteByTitle(String? title) {
+    return deleteByIndex(r'title', [title]);
+  }
+
+  bool deleteByTitleSync(String? title) {
+    return deleteByIndexSync(r'title', [title]);
+  }
+
+  Future<List<Movie?>> getAllByTitle(List<String?> titleValues) {
+    final values = titleValues.map((e) => [e]).toList();
+    return getAllByIndex(r'title', values);
+  }
+
+  List<Movie?> getAllByTitleSync(List<String?> titleValues) {
+    final values = titleValues.map((e) => [e]).toList();
+    return getAllByIndexSync(r'title', values);
+  }
+
+  Future<int> deleteAllByTitle(List<String?> titleValues) {
+    final values = titleValues.map((e) => [e]).toList();
+    return deleteAllByIndex(r'title', values);
+  }
+
+  int deleteAllByTitleSync(List<String?> titleValues) {
+    final values = titleValues.map((e) => [e]).toList();
+    return deleteAllByIndexSync(r'title', values);
+  }
+
+  Future<Id> putByTitle(Movie object) {
+    return putByIndex(r'title', object);
+  }
+
+  Id putByTitleSync(Movie object, {bool saveLinks = true}) {
+    return putByIndexSync(r'title', object, saveLinks: saveLinks);
+  }
+
+  Future<List<Id>> putAllByTitle(List<Movie> objects) {
+    return putAllByIndex(r'title', objects);
+  }
+
+  List<Id> putAllByTitleSync(List<Movie> objects, {bool saveLinks = true}) {
+    return putAllByIndexSync(r'title', objects, saveLinks: saveLinks);
+  }
+
+  Future<Movie?> getByPlayableFileId(String? playableFileId) {
+    return getByIndex(r'playableFileId', [playableFileId]);
+  }
+
+  Movie? getByPlayableFileIdSync(String? playableFileId) {
+    return getByIndexSync(r'playableFileId', [playableFileId]);
+  }
+
+  Future<bool> deleteByPlayableFileId(String? playableFileId) {
+    return deleteByIndex(r'playableFileId', [playableFileId]);
+  }
+
+  bool deleteByPlayableFileIdSync(String? playableFileId) {
+    return deleteByIndexSync(r'playableFileId', [playableFileId]);
+  }
+
+  Future<List<Movie?>> getAllByPlayableFileId(
+      List<String?> playableFileIdValues) {
+    final values = playableFileIdValues.map((e) => [e]).toList();
+    return getAllByIndex(r'playableFileId', values);
+  }
+
+  List<Movie?> getAllByPlayableFileIdSync(List<String?> playableFileIdValues) {
+    final values = playableFileIdValues.map((e) => [e]).toList();
+    return getAllByIndexSync(r'playableFileId', values);
+  }
+
+  Future<int> deleteAllByPlayableFileId(List<String?> playableFileIdValues) {
+    final values = playableFileIdValues.map((e) => [e]).toList();
+    return deleteAllByIndex(r'playableFileId', values);
+  }
+
+  int deleteAllByPlayableFileIdSync(List<String?> playableFileIdValues) {
+    final values = playableFileIdValues.map((e) => [e]).toList();
+    return deleteAllByIndexSync(r'playableFileId', values);
+  }
+
+  Future<Id> putByPlayableFileId(Movie object) {
+    return putByIndex(r'playableFileId', object);
+  }
+
+  Id putByPlayableFileIdSync(Movie object, {bool saveLinks = true}) {
+    return putByIndexSync(r'playableFileId', object, saveLinks: saveLinks);
+  }
+
+  Future<List<Id>> putAllByPlayableFileId(List<Movie> objects) {
+    return putAllByIndex(r'playableFileId', objects);
+  }
+
+  List<Id> putAllByPlayableFileIdSync(List<Movie> objects,
+      {bool saveLinks = true}) {
+    return putAllByIndexSync(r'playableFileId', objects, saveLinks: saveLinks);
   }
 
   Future<Movie?> getByTmdbId(String? tmdbId) {
@@ -553,12 +722,74 @@ extension MovieByIndex on IsarCollection<Movie> {
   List<Id> putAllByAnilistIdSync(List<Movie> objects, {bool saveLinks = true}) {
     return putAllByIndexSync(r'anilistId', objects, saveLinks: saveLinks);
   }
+
+  Future<Movie?> getByLibraryConfigId(int libraryConfigId) {
+    return getByIndex(r'libraryConfigId', [libraryConfigId]);
+  }
+
+  Movie? getByLibraryConfigIdSync(int libraryConfigId) {
+    return getByIndexSync(r'libraryConfigId', [libraryConfigId]);
+  }
+
+  Future<bool> deleteByLibraryConfigId(int libraryConfigId) {
+    return deleteByIndex(r'libraryConfigId', [libraryConfigId]);
+  }
+
+  bool deleteByLibraryConfigIdSync(int libraryConfigId) {
+    return deleteByIndexSync(r'libraryConfigId', [libraryConfigId]);
+  }
+
+  Future<List<Movie?>> getAllByLibraryConfigId(
+      List<int> libraryConfigIdValues) {
+    final values = libraryConfigIdValues.map((e) => [e]).toList();
+    return getAllByIndex(r'libraryConfigId', values);
+  }
+
+  List<Movie?> getAllByLibraryConfigIdSync(List<int> libraryConfigIdValues) {
+    final values = libraryConfigIdValues.map((e) => [e]).toList();
+    return getAllByIndexSync(r'libraryConfigId', values);
+  }
+
+  Future<int> deleteAllByLibraryConfigId(List<int> libraryConfigIdValues) {
+    final values = libraryConfigIdValues.map((e) => [e]).toList();
+    return deleteAllByIndex(r'libraryConfigId', values);
+  }
+
+  int deleteAllByLibraryConfigIdSync(List<int> libraryConfigIdValues) {
+    final values = libraryConfigIdValues.map((e) => [e]).toList();
+    return deleteAllByIndexSync(r'libraryConfigId', values);
+  }
+
+  Future<Id> putByLibraryConfigId(Movie object) {
+    return putByIndex(r'libraryConfigId', object);
+  }
+
+  Id putByLibraryConfigIdSync(Movie object, {bool saveLinks = true}) {
+    return putByIndexSync(r'libraryConfigId', object, saveLinks: saveLinks);
+  }
+
+  Future<List<Id>> putAllByLibraryConfigId(List<Movie> objects) {
+    return putAllByIndex(r'libraryConfigId', objects);
+  }
+
+  List<Id> putAllByLibraryConfigIdSync(List<Movie> objects,
+      {bool saveLinks = true}) {
+    return putAllByIndexSync(r'libraryConfigId', objects, saveLinks: saveLinks);
+  }
 }
 
 extension MovieQueryWhereSort on QueryBuilder<Movie, Movie, QWhere> {
   QueryBuilder<Movie, Movie, QAfterWhere> anyId() {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(const IdWhereClause.any());
+    });
+  }
+
+  QueryBuilder<Movie, Movie, QAfterWhere> anyLibraryConfigId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        const IndexWhereClause.any(indexName: r'libraryConfigId'),
+      );
     });
   }
 }
@@ -688,6 +919,134 @@ extension MovieQueryWhere on QueryBuilder<Movie, Movie, QWhereClause> {
               indexName: r'movieId',
               lower: [],
               upper: [movieId],
+              includeUpper: false,
+            ));
+      }
+    });
+  }
+
+  QueryBuilder<Movie, Movie, QAfterWhereClause> titleIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'title',
+        value: [null],
+      ));
+    });
+  }
+
+  QueryBuilder<Movie, Movie, QAfterWhereClause> titleIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'title',
+        lower: [null],
+        includeLower: false,
+        upper: [],
+      ));
+    });
+  }
+
+  QueryBuilder<Movie, Movie, QAfterWhereClause> titleEqualTo(String? title) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'title',
+        value: [title],
+      ));
+    });
+  }
+
+  QueryBuilder<Movie, Movie, QAfterWhereClause> titleNotEqualTo(String? title) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'title',
+              lower: [],
+              upper: [title],
+              includeUpper: false,
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'title',
+              lower: [title],
+              includeLower: false,
+              upper: [],
+            ));
+      } else {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'title',
+              lower: [title],
+              includeLower: false,
+              upper: [],
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'title',
+              lower: [],
+              upper: [title],
+              includeUpper: false,
+            ));
+      }
+    });
+  }
+
+  QueryBuilder<Movie, Movie, QAfterWhereClause> playableFileIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'playableFileId',
+        value: [null],
+      ));
+    });
+  }
+
+  QueryBuilder<Movie, Movie, QAfterWhereClause> playableFileIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'playableFileId',
+        lower: [null],
+        includeLower: false,
+        upper: [],
+      ));
+    });
+  }
+
+  QueryBuilder<Movie, Movie, QAfterWhereClause> playableFileIdEqualTo(
+      String? playableFileId) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'playableFileId',
+        value: [playableFileId],
+      ));
+    });
+  }
+
+  QueryBuilder<Movie, Movie, QAfterWhereClause> playableFileIdNotEqualTo(
+      String? playableFileId) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'playableFileId',
+              lower: [],
+              upper: [playableFileId],
+              includeUpper: false,
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'playableFileId',
+              lower: [playableFileId],
+              includeLower: false,
+              upper: [],
+            ));
+      } else {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'playableFileId',
+              lower: [playableFileId],
+              includeLower: false,
+              upper: [],
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'playableFileId',
+              lower: [],
+              upper: [playableFileId],
               includeUpper: false,
             ));
       }
@@ -883,6 +1242,96 @@ extension MovieQueryWhere on QueryBuilder<Movie, Movie, QWhereClause> {
               includeUpper: false,
             ));
       }
+    });
+  }
+
+  QueryBuilder<Movie, Movie, QAfterWhereClause> libraryConfigIdEqualTo(
+      int libraryConfigId) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'libraryConfigId',
+        value: [libraryConfigId],
+      ));
+    });
+  }
+
+  QueryBuilder<Movie, Movie, QAfterWhereClause> libraryConfigIdNotEqualTo(
+      int libraryConfigId) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'libraryConfigId',
+              lower: [],
+              upper: [libraryConfigId],
+              includeUpper: false,
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'libraryConfigId',
+              lower: [libraryConfigId],
+              includeLower: false,
+              upper: [],
+            ));
+      } else {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'libraryConfigId',
+              lower: [libraryConfigId],
+              includeLower: false,
+              upper: [],
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'libraryConfigId',
+              lower: [],
+              upper: [libraryConfigId],
+              includeUpper: false,
+            ));
+      }
+    });
+  }
+
+  QueryBuilder<Movie, Movie, QAfterWhereClause> libraryConfigIdGreaterThan(
+    int libraryConfigId, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'libraryConfigId',
+        lower: [libraryConfigId],
+        includeLower: include,
+        upper: [],
+      ));
+    });
+  }
+
+  QueryBuilder<Movie, Movie, QAfterWhereClause> libraryConfigIdLessThan(
+    int libraryConfigId, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'libraryConfigId',
+        lower: [],
+        upper: [libraryConfigId],
+        includeUpper: include,
+      ));
+    });
+  }
+
+  QueryBuilder<Movie, Movie, QAfterWhereClause> libraryConfigIdBetween(
+    int lowerLibraryConfigId,
+    int upperLibraryConfigId, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'libraryConfigId',
+        lower: [lowerLibraryConfigId],
+        includeLower: includeLower,
+        upper: [upperLibraryConfigId],
+        includeUpper: includeUpper,
+      ));
     });
   }
 }
@@ -2016,6 +2465,59 @@ extension MovieQueryFilter on QueryBuilder<Movie, Movie, QFilterCondition> {
     });
   }
 
+  QueryBuilder<Movie, Movie, QAfterFilterCondition> libraryConfigIdEqualTo(
+      int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'libraryConfigId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Movie, Movie, QAfterFilterCondition> libraryConfigIdGreaterThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'libraryConfigId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Movie, Movie, QAfterFilterCondition> libraryConfigIdLessThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'libraryConfigId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Movie, Movie, QAfterFilterCondition> libraryConfigIdBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'libraryConfigId',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
   QueryBuilder<Movie, Movie, QAfterFilterCondition> malIdIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
@@ -2452,6 +2954,150 @@ extension MovieQueryFilter on QueryBuilder<Movie, Movie, QFilterCondition> {
     });
   }
 
+  QueryBuilder<Movie, Movie, QAfterFilterCondition> titleIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'title',
+      ));
+    });
+  }
+
+  QueryBuilder<Movie, Movie, QAfterFilterCondition> titleIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'title',
+      ));
+    });
+  }
+
+  QueryBuilder<Movie, Movie, QAfterFilterCondition> titleEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'title',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Movie, Movie, QAfterFilterCondition> titleGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'title',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Movie, Movie, QAfterFilterCondition> titleLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'title',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Movie, Movie, QAfterFilterCondition> titleBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'title',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Movie, Movie, QAfterFilterCondition> titleStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'title',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Movie, Movie, QAfterFilterCondition> titleEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'title',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Movie, Movie, QAfterFilterCondition> titleContains(String value,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'title',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Movie, Movie, QAfterFilterCondition> titleMatches(String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'title',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Movie, Movie, QAfterFilterCondition> titleIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'title',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<Movie, Movie, QAfterFilterCondition> titleIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'title',
+        value: '',
+      ));
+    });
+  }
+
   QueryBuilder<Movie, Movie, QAfterFilterCondition> tmdbIdIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
@@ -2713,6 +3359,18 @@ extension MovieQuerySortBy on QueryBuilder<Movie, Movie, QSortBy> {
     });
   }
 
+  QueryBuilder<Movie, Movie, QAfterSortBy> sortByLibraryConfigId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'libraryConfigId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Movie, Movie, QAfterSortBy> sortByLibraryConfigIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'libraryConfigId', Sort.desc);
+    });
+  }
+
   QueryBuilder<Movie, Movie, QAfterSortBy> sortByMalId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'malId', Sort.asc);
@@ -2746,6 +3404,18 @@ extension MovieQuerySortBy on QueryBuilder<Movie, Movie, QSortBy> {
   QueryBuilder<Movie, Movie, QAfterSortBy> sortByPlayableFileIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'playableFileId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Movie, Movie, QAfterSortBy> sortByTitle() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'title', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Movie, Movie, QAfterSortBy> sortByTitleDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'title', Sort.desc);
     });
   }
 
@@ -2871,6 +3541,18 @@ extension MovieQuerySortThenBy on QueryBuilder<Movie, Movie, QSortThenBy> {
     });
   }
 
+  QueryBuilder<Movie, Movie, QAfterSortBy> thenByLibraryConfigId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'libraryConfigId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Movie, Movie, QAfterSortBy> thenByLibraryConfigIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'libraryConfigId', Sort.desc);
+    });
+  }
+
   QueryBuilder<Movie, Movie, QAfterSortBy> thenByMalId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'malId', Sort.asc);
@@ -2904,6 +3586,18 @@ extension MovieQuerySortThenBy on QueryBuilder<Movie, Movie, QSortThenBy> {
   QueryBuilder<Movie, Movie, QAfterSortBy> thenByPlayableFileIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'playableFileId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Movie, Movie, QAfterSortBy> thenByTitle() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'title', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Movie, Movie, QAfterSortBy> thenByTitleDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'title', Sort.desc);
     });
   }
 
@@ -2982,6 +3676,12 @@ extension MovieQueryWhereDistinct on QueryBuilder<Movie, Movie, QDistinct> {
     });
   }
 
+  QueryBuilder<Movie, Movie, QDistinct> distinctByLibraryConfigId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'libraryConfigId');
+    });
+  }
+
   QueryBuilder<Movie, Movie, QDistinct> distinctByMalId(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -3001,6 +3701,13 @@ extension MovieQueryWhereDistinct on QueryBuilder<Movie, Movie, QDistinct> {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'playableFileId',
           caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<Movie, Movie, QDistinct> distinctByTitle(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'title', caseSensitive: caseSensitive);
     });
   }
 
@@ -3067,6 +3774,12 @@ extension MovieQueryProperty on QueryBuilder<Movie, Movie, QQueryProperty> {
     });
   }
 
+  QueryBuilder<Movie, int, QQueryOperations> libraryConfigIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'libraryConfigId');
+    });
+  }
+
   QueryBuilder<Movie, String?, QQueryOperations> malIdProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'malId');
@@ -3094,6 +3807,12 @@ extension MovieQueryProperty on QueryBuilder<Movie, Movie, QQueryProperty> {
   QueryBuilder<Movie, String?, QQueryOperations> playableFileIdProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'playableFileId');
+    });
+  }
+
+  QueryBuilder<Movie, String?, QQueryOperations> titleProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'title');
     });
   }
 
@@ -3135,29 +3854,34 @@ const MangaSeriesSchema = CollectionSchema(
       name: r'description',
       type: IsarType.string,
     ),
-    r'malId': PropertySchema(
+    r'libraryConfigId': PropertySchema(
       id: 4,
+      name: r'libraryConfigId',
+      type: IsarType.long,
+    ),
+    r'malId': PropertySchema(
+      id: 5,
       name: r'malId',
       type: IsarType.string,
     ),
     r'onlineCoverUrl': PropertySchema(
-      id: 5,
+      id: 6,
       name: r'onlineCoverUrl',
       type: IsarType.string,
     ),
     r'progress': PropertySchema(
-      id: 6,
+      id: 7,
       name: r'progress',
       type: IsarType.object,
       target: r'IsarUserProgress',
     ),
     r'seriesId': PropertySchema(
-      id: 7,
+      id: 8,
       name: r'seriesId',
       type: IsarType.string,
     ),
     r'title': PropertySchema(
-      id: 8,
+      id: 9,
       name: r'title',
       type: IsarType.string,
     )
@@ -3202,6 +3926,19 @@ const MangaSeriesSchema = CollectionSchema(
       properties: [
         IndexPropertySchema(
           name: r'author',
+          type: IndexType.value,
+          caseSensitive: false,
+        )
+      ],
+    ),
+    r'libraryConfigId': IndexSchema(
+      id: -1052534281605808785,
+      name: r'libraryConfigId',
+      unique: true,
+      replace: true,
+      properties: [
+        IndexPropertySchema(
+          name: r'libraryConfigId',
           type: IndexType.value,
           caseSensitive: false,
         )
@@ -3274,16 +4011,17 @@ void _mangaSeriesSerialize(
   writer.writeString(offsets[1], object.author);
   writer.writeString(offsets[2], object.coverPath);
   writer.writeString(offsets[3], object.description);
-  writer.writeString(offsets[4], object.malId);
-  writer.writeString(offsets[5], object.onlineCoverUrl);
+  writer.writeLong(offsets[4], object.libraryConfigId);
+  writer.writeString(offsets[5], object.malId);
+  writer.writeString(offsets[6], object.onlineCoverUrl);
   writer.writeObject<IsarUserProgress>(
-    offsets[6],
+    offsets[7],
     allOffsets,
     IsarUserProgressSchema.serialize,
     object.progress,
   );
-  writer.writeString(offsets[7], object.seriesId);
-  writer.writeString(offsets[8], object.title);
+  writer.writeString(offsets[8], object.seriesId);
+  writer.writeString(offsets[9], object.title);
 }
 
 MangaSeries _mangaSeriesDeserialize(
@@ -3298,15 +4036,16 @@ MangaSeries _mangaSeriesDeserialize(
   object.coverPath = reader.readString(offsets[2]);
   object.description = reader.readString(offsets[3]);
   object.id = id;
-  object.malId = reader.readStringOrNull(offsets[4]);
-  object.onlineCoverUrl = reader.readStringOrNull(offsets[5]);
+  object.libraryConfigId = reader.readLong(offsets[4]);
+  object.malId = reader.readStringOrNull(offsets[5]);
+  object.onlineCoverUrl = reader.readStringOrNull(offsets[6]);
   object.progress = reader.readObjectOrNull<IsarUserProgress>(
-    offsets[6],
+    offsets[7],
     IsarUserProgressSchema.deserialize,
     allOffsets,
   );
-  object.seriesId = reader.readString(offsets[7]);
-  object.title = reader.readString(offsets[8]);
+  object.seriesId = reader.readString(offsets[8]);
+  object.title = reader.readString(offsets[9]);
   return object;
 }
 
@@ -3326,18 +4065,20 @@ P _mangaSeriesDeserializeProp<P>(
     case 3:
       return (reader.readString(offset)) as P;
     case 4:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readLong(offset)) as P;
     case 5:
       return (reader.readStringOrNull(offset)) as P;
     case 6:
+      return (reader.readStringOrNull(offset)) as P;
+    case 7:
       return (reader.readObjectOrNull<IsarUserProgress>(
         offset,
         IsarUserProgressSchema.deserialize,
         allOffsets,
       )) as P;
-    case 7:
-      return (reader.readString(offset)) as P;
     case 8:
+      return (reader.readString(offset)) as P;
+    case 9:
       return (reader.readString(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -3412,6 +4153,61 @@ extension MangaSeriesByIndex on IsarCollection<MangaSeries> {
       {bool saveLinks = true}) {
     return putAllByIndexSync(r'seriesId', objects, saveLinks: saveLinks);
   }
+
+  Future<MangaSeries?> getByLibraryConfigId(int libraryConfigId) {
+    return getByIndex(r'libraryConfigId', [libraryConfigId]);
+  }
+
+  MangaSeries? getByLibraryConfigIdSync(int libraryConfigId) {
+    return getByIndexSync(r'libraryConfigId', [libraryConfigId]);
+  }
+
+  Future<bool> deleteByLibraryConfigId(int libraryConfigId) {
+    return deleteByIndex(r'libraryConfigId', [libraryConfigId]);
+  }
+
+  bool deleteByLibraryConfigIdSync(int libraryConfigId) {
+    return deleteByIndexSync(r'libraryConfigId', [libraryConfigId]);
+  }
+
+  Future<List<MangaSeries?>> getAllByLibraryConfigId(
+      List<int> libraryConfigIdValues) {
+    final values = libraryConfigIdValues.map((e) => [e]).toList();
+    return getAllByIndex(r'libraryConfigId', values);
+  }
+
+  List<MangaSeries?> getAllByLibraryConfigIdSync(
+      List<int> libraryConfigIdValues) {
+    final values = libraryConfigIdValues.map((e) => [e]).toList();
+    return getAllByIndexSync(r'libraryConfigId', values);
+  }
+
+  Future<int> deleteAllByLibraryConfigId(List<int> libraryConfigIdValues) {
+    final values = libraryConfigIdValues.map((e) => [e]).toList();
+    return deleteAllByIndex(r'libraryConfigId', values);
+  }
+
+  int deleteAllByLibraryConfigIdSync(List<int> libraryConfigIdValues) {
+    final values = libraryConfigIdValues.map((e) => [e]).toList();
+    return deleteAllByIndexSync(r'libraryConfigId', values);
+  }
+
+  Future<Id> putByLibraryConfigId(MangaSeries object) {
+    return putByIndex(r'libraryConfigId', object);
+  }
+
+  Id putByLibraryConfigIdSync(MangaSeries object, {bool saveLinks = true}) {
+    return putByIndexSync(r'libraryConfigId', object, saveLinks: saveLinks);
+  }
+
+  Future<List<Id>> putAllByLibraryConfigId(List<MangaSeries> objects) {
+    return putAllByIndex(r'libraryConfigId', objects);
+  }
+
+  List<Id> putAllByLibraryConfigIdSync(List<MangaSeries> objects,
+      {bool saveLinks = true}) {
+    return putAllByIndexSync(r'libraryConfigId', objects, saveLinks: saveLinks);
+  }
 }
 
 extension MangaSeriesQueryWhereSort
@@ -3434,6 +4230,14 @@ extension MangaSeriesQueryWhereSort
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(
         const IndexWhereClause.any(indexName: r'author'),
+      );
+    });
+  }
+
+  QueryBuilder<MangaSeries, MangaSeries, QAfterWhere> anyLibraryConfigId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        const IndexWhereClause.any(indexName: r'libraryConfigId'),
       );
     });
   }
@@ -3821,6 +4625,99 @@ extension MangaSeriesQueryWhere
               upper: [''],
             ));
       }
+    });
+  }
+
+  QueryBuilder<MangaSeries, MangaSeries, QAfterWhereClause>
+      libraryConfigIdEqualTo(int libraryConfigId) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'libraryConfigId',
+        value: [libraryConfigId],
+      ));
+    });
+  }
+
+  QueryBuilder<MangaSeries, MangaSeries, QAfterWhereClause>
+      libraryConfigIdNotEqualTo(int libraryConfigId) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'libraryConfigId',
+              lower: [],
+              upper: [libraryConfigId],
+              includeUpper: false,
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'libraryConfigId',
+              lower: [libraryConfigId],
+              includeLower: false,
+              upper: [],
+            ));
+      } else {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'libraryConfigId',
+              lower: [libraryConfigId],
+              includeLower: false,
+              upper: [],
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'libraryConfigId',
+              lower: [],
+              upper: [libraryConfigId],
+              includeUpper: false,
+            ));
+      }
+    });
+  }
+
+  QueryBuilder<MangaSeries, MangaSeries, QAfterWhereClause>
+      libraryConfigIdGreaterThan(
+    int libraryConfigId, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'libraryConfigId',
+        lower: [libraryConfigId],
+        includeLower: include,
+        upper: [],
+      ));
+    });
+  }
+
+  QueryBuilder<MangaSeries, MangaSeries, QAfterWhereClause>
+      libraryConfigIdLessThan(
+    int libraryConfigId, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'libraryConfigId',
+        lower: [],
+        upper: [libraryConfigId],
+        includeUpper: include,
+      ));
+    });
+  }
+
+  QueryBuilder<MangaSeries, MangaSeries, QAfterWhereClause>
+      libraryConfigIdBetween(
+    int lowerLibraryConfigId,
+    int upperLibraryConfigId, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'libraryConfigId',
+        lower: [lowerLibraryConfigId],
+        includeLower: includeLower,
+        upper: [upperLibraryConfigId],
+        includeUpper: includeUpper,
+      ));
     });
   }
 }
@@ -4432,6 +5329,62 @@ extension MangaSeriesQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.between(
         property: r'id',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<MangaSeries, MangaSeries, QAfterFilterCondition>
+      libraryConfigIdEqualTo(int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'libraryConfigId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<MangaSeries, MangaSeries, QAfterFilterCondition>
+      libraryConfigIdGreaterThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'libraryConfigId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<MangaSeries, MangaSeries, QAfterFilterCondition>
+      libraryConfigIdLessThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'libraryConfigId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<MangaSeries, MangaSeries, QAfterFilterCondition>
+      libraryConfigIdBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'libraryConfigId',
         lower: lower,
         includeLower: includeLower,
         upper: upper,
@@ -5153,6 +6106,19 @@ extension MangaSeriesQuerySortBy
     });
   }
 
+  QueryBuilder<MangaSeries, MangaSeries, QAfterSortBy> sortByLibraryConfigId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'libraryConfigId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<MangaSeries, MangaSeries, QAfterSortBy>
+      sortByLibraryConfigIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'libraryConfigId', Sort.desc);
+    });
+  }
+
   QueryBuilder<MangaSeries, MangaSeries, QAfterSortBy> sortByMalId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'malId', Sort.asc);
@@ -5265,6 +6231,19 @@ extension MangaSeriesQuerySortThenBy
     });
   }
 
+  QueryBuilder<MangaSeries, MangaSeries, QAfterSortBy> thenByLibraryConfigId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'libraryConfigId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<MangaSeries, MangaSeries, QAfterSortBy>
+      thenByLibraryConfigIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'libraryConfigId', Sort.desc);
+    });
+  }
+
   QueryBuilder<MangaSeries, MangaSeries, QAfterSortBy> thenByMalId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'malId', Sort.asc);
@@ -5345,6 +6324,13 @@ extension MangaSeriesQueryWhereDistinct
     });
   }
 
+  QueryBuilder<MangaSeries, MangaSeries, QDistinct>
+      distinctByLibraryConfigId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'libraryConfigId');
+    });
+  }
+
   QueryBuilder<MangaSeries, MangaSeries, QDistinct> distinctByMalId(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -5404,6 +6390,12 @@ extension MangaSeriesQueryProperty
   QueryBuilder<MangaSeries, String, QQueryOperations> descriptionProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'description');
+    });
+  }
+
+  QueryBuilder<MangaSeries, int, QQueryOperations> libraryConfigIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'libraryConfigId');
     });
   }
 
@@ -8760,6 +9752,45 @@ const PersonSchema = CollectionSchema(
         )
       ],
     ),
+    r'adult': IndexSchema(
+      id: 4476031077645866095,
+      name: r'adult',
+      unique: true,
+      replace: true,
+      properties: [
+        IndexPropertySchema(
+          name: r'adult',
+          type: IndexType.value,
+          caseSensitive: false,
+        )
+      ],
+    ),
+    r'birthday': IndexSchema(
+      id: -9183664874582321679,
+      name: r'birthday',
+      unique: true,
+      replace: true,
+      properties: [
+        IndexPropertySchema(
+          name: r'birthday',
+          type: IndexType.hash,
+          caseSensitive: true,
+        )
+      ],
+    ),
+    r'deathday': IndexSchema(
+      id: -662899423062917822,
+      name: r'deathday',
+      unique: true,
+      replace: true,
+      properties: [
+        IndexPropertySchema(
+          name: r'deathday',
+          type: IndexType.hash,
+          caseSensitive: true,
+        )
+      ],
+    ),
     r'imdbId': IndexSchema(
       id: 2396777269980646654,
       name: r'imdbId',
@@ -8770,6 +9801,32 @@ const PersonSchema = CollectionSchema(
           name: r'imdbId',
           type: IndexType.hash,
           caseSensitive: true,
+        )
+      ],
+    ),
+    r'name': IndexSchema(
+      id: 879695947855722453,
+      name: r'name',
+      unique: true,
+      replace: true,
+      properties: [
+        IndexPropertySchema(
+          name: r'name',
+          type: IndexType.hash,
+          caseSensitive: true,
+        )
+      ],
+    ),
+    r'popularity': IndexSchema(
+      id: -817613675826504681,
+      name: r'popularity',
+      unique: true,
+      replace: true,
+      properties: [
+        IndexPropertySchema(
+          name: r'popularity',
+          type: IndexType.value,
+          caseSensitive: false,
         )
       ],
     )
@@ -9017,6 +10074,162 @@ extension PersonByIndex on IsarCollection<Person> {
     return putAllByIndexSync(r'tmdbPersonId', objects, saveLinks: saveLinks);
   }
 
+  Future<Person?> getByAdult(bool adult) {
+    return getByIndex(r'adult', [adult]);
+  }
+
+  Person? getByAdultSync(bool adult) {
+    return getByIndexSync(r'adult', [adult]);
+  }
+
+  Future<bool> deleteByAdult(bool adult) {
+    return deleteByIndex(r'adult', [adult]);
+  }
+
+  bool deleteByAdultSync(bool adult) {
+    return deleteByIndexSync(r'adult', [adult]);
+  }
+
+  Future<List<Person?>> getAllByAdult(List<bool> adultValues) {
+    final values = adultValues.map((e) => [e]).toList();
+    return getAllByIndex(r'adult', values);
+  }
+
+  List<Person?> getAllByAdultSync(List<bool> adultValues) {
+    final values = adultValues.map((e) => [e]).toList();
+    return getAllByIndexSync(r'adult', values);
+  }
+
+  Future<int> deleteAllByAdult(List<bool> adultValues) {
+    final values = adultValues.map((e) => [e]).toList();
+    return deleteAllByIndex(r'adult', values);
+  }
+
+  int deleteAllByAdultSync(List<bool> adultValues) {
+    final values = adultValues.map((e) => [e]).toList();
+    return deleteAllByIndexSync(r'adult', values);
+  }
+
+  Future<Id> putByAdult(Person object) {
+    return putByIndex(r'adult', object);
+  }
+
+  Id putByAdultSync(Person object, {bool saveLinks = true}) {
+    return putByIndexSync(r'adult', object, saveLinks: saveLinks);
+  }
+
+  Future<List<Id>> putAllByAdult(List<Person> objects) {
+    return putAllByIndex(r'adult', objects);
+  }
+
+  List<Id> putAllByAdultSync(List<Person> objects, {bool saveLinks = true}) {
+    return putAllByIndexSync(r'adult', objects, saveLinks: saveLinks);
+  }
+
+  Future<Person?> getByBirthday(String? birthday) {
+    return getByIndex(r'birthday', [birthday]);
+  }
+
+  Person? getByBirthdaySync(String? birthday) {
+    return getByIndexSync(r'birthday', [birthday]);
+  }
+
+  Future<bool> deleteByBirthday(String? birthday) {
+    return deleteByIndex(r'birthday', [birthday]);
+  }
+
+  bool deleteByBirthdaySync(String? birthday) {
+    return deleteByIndexSync(r'birthday', [birthday]);
+  }
+
+  Future<List<Person?>> getAllByBirthday(List<String?> birthdayValues) {
+    final values = birthdayValues.map((e) => [e]).toList();
+    return getAllByIndex(r'birthday', values);
+  }
+
+  List<Person?> getAllByBirthdaySync(List<String?> birthdayValues) {
+    final values = birthdayValues.map((e) => [e]).toList();
+    return getAllByIndexSync(r'birthday', values);
+  }
+
+  Future<int> deleteAllByBirthday(List<String?> birthdayValues) {
+    final values = birthdayValues.map((e) => [e]).toList();
+    return deleteAllByIndex(r'birthday', values);
+  }
+
+  int deleteAllByBirthdaySync(List<String?> birthdayValues) {
+    final values = birthdayValues.map((e) => [e]).toList();
+    return deleteAllByIndexSync(r'birthday', values);
+  }
+
+  Future<Id> putByBirthday(Person object) {
+    return putByIndex(r'birthday', object);
+  }
+
+  Id putByBirthdaySync(Person object, {bool saveLinks = true}) {
+    return putByIndexSync(r'birthday', object, saveLinks: saveLinks);
+  }
+
+  Future<List<Id>> putAllByBirthday(List<Person> objects) {
+    return putAllByIndex(r'birthday', objects);
+  }
+
+  List<Id> putAllByBirthdaySync(List<Person> objects, {bool saveLinks = true}) {
+    return putAllByIndexSync(r'birthday', objects, saveLinks: saveLinks);
+  }
+
+  Future<Person?> getByDeathday(String? deathday) {
+    return getByIndex(r'deathday', [deathday]);
+  }
+
+  Person? getByDeathdaySync(String? deathday) {
+    return getByIndexSync(r'deathday', [deathday]);
+  }
+
+  Future<bool> deleteByDeathday(String? deathday) {
+    return deleteByIndex(r'deathday', [deathday]);
+  }
+
+  bool deleteByDeathdaySync(String? deathday) {
+    return deleteByIndexSync(r'deathday', [deathday]);
+  }
+
+  Future<List<Person?>> getAllByDeathday(List<String?> deathdayValues) {
+    final values = deathdayValues.map((e) => [e]).toList();
+    return getAllByIndex(r'deathday', values);
+  }
+
+  List<Person?> getAllByDeathdaySync(List<String?> deathdayValues) {
+    final values = deathdayValues.map((e) => [e]).toList();
+    return getAllByIndexSync(r'deathday', values);
+  }
+
+  Future<int> deleteAllByDeathday(List<String?> deathdayValues) {
+    final values = deathdayValues.map((e) => [e]).toList();
+    return deleteAllByIndex(r'deathday', values);
+  }
+
+  int deleteAllByDeathdaySync(List<String?> deathdayValues) {
+    final values = deathdayValues.map((e) => [e]).toList();
+    return deleteAllByIndexSync(r'deathday', values);
+  }
+
+  Future<Id> putByDeathday(Person object) {
+    return putByIndex(r'deathday', object);
+  }
+
+  Id putByDeathdaySync(Person object, {bool saveLinks = true}) {
+    return putByIndexSync(r'deathday', object, saveLinks: saveLinks);
+  }
+
+  Future<List<Id>> putAllByDeathday(List<Person> objects) {
+    return putAllByIndex(r'deathday', objects);
+  }
+
+  List<Id> putAllByDeathdaySync(List<Person> objects, {bool saveLinks = true}) {
+    return putAllByIndexSync(r'deathday', objects, saveLinks: saveLinks);
+  }
+
   Future<Person?> getByImdbId(String? imdbId) {
     return getByIndex(r'imdbId', [imdbId]);
   }
@@ -9068,12 +10281,133 @@ extension PersonByIndex on IsarCollection<Person> {
   List<Id> putAllByImdbIdSync(List<Person> objects, {bool saveLinks = true}) {
     return putAllByIndexSync(r'imdbId', objects, saveLinks: saveLinks);
   }
+
+  Future<Person?> getByName(String name) {
+    return getByIndex(r'name', [name]);
+  }
+
+  Person? getByNameSync(String name) {
+    return getByIndexSync(r'name', [name]);
+  }
+
+  Future<bool> deleteByName(String name) {
+    return deleteByIndex(r'name', [name]);
+  }
+
+  bool deleteByNameSync(String name) {
+    return deleteByIndexSync(r'name', [name]);
+  }
+
+  Future<List<Person?>> getAllByName(List<String> nameValues) {
+    final values = nameValues.map((e) => [e]).toList();
+    return getAllByIndex(r'name', values);
+  }
+
+  List<Person?> getAllByNameSync(List<String> nameValues) {
+    final values = nameValues.map((e) => [e]).toList();
+    return getAllByIndexSync(r'name', values);
+  }
+
+  Future<int> deleteAllByName(List<String> nameValues) {
+    final values = nameValues.map((e) => [e]).toList();
+    return deleteAllByIndex(r'name', values);
+  }
+
+  int deleteAllByNameSync(List<String> nameValues) {
+    final values = nameValues.map((e) => [e]).toList();
+    return deleteAllByIndexSync(r'name', values);
+  }
+
+  Future<Id> putByName(Person object) {
+    return putByIndex(r'name', object);
+  }
+
+  Id putByNameSync(Person object, {bool saveLinks = true}) {
+    return putByIndexSync(r'name', object, saveLinks: saveLinks);
+  }
+
+  Future<List<Id>> putAllByName(List<Person> objects) {
+    return putAllByIndex(r'name', objects);
+  }
+
+  List<Id> putAllByNameSync(List<Person> objects, {bool saveLinks = true}) {
+    return putAllByIndexSync(r'name', objects, saveLinks: saveLinks);
+  }
+
+  Future<Person?> getByPopularity(double popularity) {
+    return getByIndex(r'popularity', [popularity]);
+  }
+
+  Person? getByPopularitySync(double popularity) {
+    return getByIndexSync(r'popularity', [popularity]);
+  }
+
+  Future<bool> deleteByPopularity(double popularity) {
+    return deleteByIndex(r'popularity', [popularity]);
+  }
+
+  bool deleteByPopularitySync(double popularity) {
+    return deleteByIndexSync(r'popularity', [popularity]);
+  }
+
+  Future<List<Person?>> getAllByPopularity(List<double> popularityValues) {
+    final values = popularityValues.map((e) => [e]).toList();
+    return getAllByIndex(r'popularity', values);
+  }
+
+  List<Person?> getAllByPopularitySync(List<double> popularityValues) {
+    final values = popularityValues.map((e) => [e]).toList();
+    return getAllByIndexSync(r'popularity', values);
+  }
+
+  Future<int> deleteAllByPopularity(List<double> popularityValues) {
+    final values = popularityValues.map((e) => [e]).toList();
+    return deleteAllByIndex(r'popularity', values);
+  }
+
+  int deleteAllByPopularitySync(List<double> popularityValues) {
+    final values = popularityValues.map((e) => [e]).toList();
+    return deleteAllByIndexSync(r'popularity', values);
+  }
+
+  Future<Id> putByPopularity(Person object) {
+    return putByIndex(r'popularity', object);
+  }
+
+  Id putByPopularitySync(Person object, {bool saveLinks = true}) {
+    return putByIndexSync(r'popularity', object, saveLinks: saveLinks);
+  }
+
+  Future<List<Id>> putAllByPopularity(List<Person> objects) {
+    return putAllByIndex(r'popularity', objects);
+  }
+
+  List<Id> putAllByPopularitySync(List<Person> objects,
+      {bool saveLinks = true}) {
+    return putAllByIndexSync(r'popularity', objects, saveLinks: saveLinks);
+  }
 }
 
 extension PersonQueryWhereSort on QueryBuilder<Person, Person, QWhere> {
   QueryBuilder<Person, Person, QAfterWhere> anyId() {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(const IdWhereClause.any());
+    });
+  }
+
+  QueryBuilder<Person, Person, QAfterWhere> anyAdult() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        const IndexWhereClause.any(indexName: r'adult'),
+      );
+    });
+  }
+
+  QueryBuilder<Person, Person, QAfterWhere> anyPopularity() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        const IndexWhereClause.any(indexName: r'popularity'),
+      );
     });
   }
 }
@@ -9209,6 +10543,179 @@ extension PersonQueryWhere on QueryBuilder<Person, Person, QWhereClause> {
     });
   }
 
+  QueryBuilder<Person, Person, QAfterWhereClause> adultEqualTo(bool adult) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'adult',
+        value: [adult],
+      ));
+    });
+  }
+
+  QueryBuilder<Person, Person, QAfterWhereClause> adultNotEqualTo(bool adult) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'adult',
+              lower: [],
+              upper: [adult],
+              includeUpper: false,
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'adult',
+              lower: [adult],
+              includeLower: false,
+              upper: [],
+            ));
+      } else {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'adult',
+              lower: [adult],
+              includeLower: false,
+              upper: [],
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'adult',
+              lower: [],
+              upper: [adult],
+              includeUpper: false,
+            ));
+      }
+    });
+  }
+
+  QueryBuilder<Person, Person, QAfterWhereClause> birthdayIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'birthday',
+        value: [null],
+      ));
+    });
+  }
+
+  QueryBuilder<Person, Person, QAfterWhereClause> birthdayIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'birthday',
+        lower: [null],
+        includeLower: false,
+        upper: [],
+      ));
+    });
+  }
+
+  QueryBuilder<Person, Person, QAfterWhereClause> birthdayEqualTo(
+      String? birthday) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'birthday',
+        value: [birthday],
+      ));
+    });
+  }
+
+  QueryBuilder<Person, Person, QAfterWhereClause> birthdayNotEqualTo(
+      String? birthday) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'birthday',
+              lower: [],
+              upper: [birthday],
+              includeUpper: false,
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'birthday',
+              lower: [birthday],
+              includeLower: false,
+              upper: [],
+            ));
+      } else {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'birthday',
+              lower: [birthday],
+              includeLower: false,
+              upper: [],
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'birthday',
+              lower: [],
+              upper: [birthday],
+              includeUpper: false,
+            ));
+      }
+    });
+  }
+
+  QueryBuilder<Person, Person, QAfterWhereClause> deathdayIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'deathday',
+        value: [null],
+      ));
+    });
+  }
+
+  QueryBuilder<Person, Person, QAfterWhereClause> deathdayIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'deathday',
+        lower: [null],
+        includeLower: false,
+        upper: [],
+      ));
+    });
+  }
+
+  QueryBuilder<Person, Person, QAfterWhereClause> deathdayEqualTo(
+      String? deathday) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'deathday',
+        value: [deathday],
+      ));
+    });
+  }
+
+  QueryBuilder<Person, Person, QAfterWhereClause> deathdayNotEqualTo(
+      String? deathday) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'deathday',
+              lower: [],
+              upper: [deathday],
+              includeUpper: false,
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'deathday',
+              lower: [deathday],
+              includeLower: false,
+              upper: [],
+            ));
+      } else {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'deathday',
+              lower: [deathday],
+              includeLower: false,
+              upper: [],
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'deathday',
+              lower: [],
+              upper: [deathday],
+              includeUpper: false,
+            ));
+      }
+    });
+  }
+
   QueryBuilder<Person, Person, QAfterWhereClause> imdbIdIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(IndexWhereClause.equalTo(
@@ -9271,6 +10778,139 @@ extension PersonQueryWhere on QueryBuilder<Person, Person, QWhereClause> {
               includeUpper: false,
             ));
       }
+    });
+  }
+
+  QueryBuilder<Person, Person, QAfterWhereClause> nameEqualTo(String name) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'name',
+        value: [name],
+      ));
+    });
+  }
+
+  QueryBuilder<Person, Person, QAfterWhereClause> nameNotEqualTo(String name) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'name',
+              lower: [],
+              upper: [name],
+              includeUpper: false,
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'name',
+              lower: [name],
+              includeLower: false,
+              upper: [],
+            ));
+      } else {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'name',
+              lower: [name],
+              includeLower: false,
+              upper: [],
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'name',
+              lower: [],
+              upper: [name],
+              includeUpper: false,
+            ));
+      }
+    });
+  }
+
+  QueryBuilder<Person, Person, QAfterWhereClause> popularityEqualTo(
+      double popularity) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'popularity',
+        value: [popularity],
+      ));
+    });
+  }
+
+  QueryBuilder<Person, Person, QAfterWhereClause> popularityNotEqualTo(
+      double popularity) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'popularity',
+              lower: [],
+              upper: [popularity],
+              includeUpper: false,
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'popularity',
+              lower: [popularity],
+              includeLower: false,
+              upper: [],
+            ));
+      } else {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'popularity',
+              lower: [popularity],
+              includeLower: false,
+              upper: [],
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'popularity',
+              lower: [],
+              upper: [popularity],
+              includeUpper: false,
+            ));
+      }
+    });
+  }
+
+  QueryBuilder<Person, Person, QAfterWhereClause> popularityGreaterThan(
+    double popularity, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'popularity',
+        lower: [popularity],
+        includeLower: include,
+        upper: [],
+      ));
+    });
+  }
+
+  QueryBuilder<Person, Person, QAfterWhereClause> popularityLessThan(
+    double popularity, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'popularity',
+        lower: [],
+        upper: [popularity],
+        includeUpper: include,
+      ));
+    });
+  }
+
+  QueryBuilder<Person, Person, QAfterWhereClause> popularityBetween(
+    double lowerPopularity,
+    double upperPopularity, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'popularity',
+        lower: [lowerPopularity],
+        includeLower: includeLower,
+        upper: [upperPopularity],
+        includeUpper: includeUpper,
+      ));
     });
   }
 }
@@ -12325,26 +13965,31 @@ const PlayableFileSchema = CollectionSchema(
       name: r'isVideo',
       type: IsarType.bool,
     ),
-    r'playState': PropertySchema(
+    r'libraryConfigId': PropertySchema(
       id: 3,
+      name: r'libraryConfigId',
+      type: IsarType.long,
+    ),
+    r'playState': PropertySchema(
+      id: 4,
       name: r'playState',
       type: IsarType.object,
       target: r'PlayNowState',
     ),
     r'rating': PropertySchema(
-      id: 4,
+      id: 5,
       name: r'rating',
       type: IsarType.object,
       target: r'Rating',
     ),
     r'urls': PropertySchema(
-      id: 5,
+      id: 6,
       name: r'urls',
       type: IsarType.object,
       target: r'PlayUrls',
     ),
     r'watchState': PropertySchema(
-      id: 6,
+      id: 7,
       name: r'watchState',
       type: IsarType.object,
       target: r'PlayState',
@@ -12366,6 +14011,19 @@ const PlayableFileSchema = CollectionSchema(
           name: r'fileId',
           type: IndexType.hash,
           caseSensitive: true,
+        )
+      ],
+    ),
+    r'libraryConfigId': IndexSchema(
+      id: -1052534281605808785,
+      name: r'libraryConfigId',
+      unique: true,
+      replace: true,
+      properties: [
+        IndexPropertySchema(
+          name: r'libraryConfigId',
+          type: IndexType.value,
+          caseSensitive: false,
         )
       ],
     )
@@ -12419,26 +14077,27 @@ void _playableFileSerialize(
   writer.writeString(offsets[0], object.fileId);
   writer.writeString(offsets[1], object.filePath);
   writer.writeBool(offsets[2], object.isVideo);
+  writer.writeLong(offsets[3], object.libraryConfigId);
   writer.writeObject<PlayNowState>(
-    offsets[3],
+    offsets[4],
     allOffsets,
     PlayNowStateSchema.serialize,
     object.playState,
   );
   writer.writeObject<Rating>(
-    offsets[4],
+    offsets[5],
     allOffsets,
     RatingSchema.serialize,
     object.rating,
   );
   writer.writeObject<PlayUrls>(
-    offsets[5],
+    offsets[6],
     allOffsets,
     PlayUrlsSchema.serialize,
     object.urls,
   );
   writer.writeObject<PlayState>(
-    offsets[6],
+    offsets[7],
     allOffsets,
     PlayStateSchema.serialize,
     object.watchState,
@@ -12456,26 +14115,27 @@ PlayableFile _playableFileDeserialize(
   object.filePath = reader.readString(offsets[1]);
   object.id = id;
   object.isVideo = reader.readBool(offsets[2]);
+  object.libraryConfigId = reader.readLong(offsets[3]);
   object.playState = reader.readObjectOrNull<PlayNowState>(
-        offsets[3],
+        offsets[4],
         PlayNowStateSchema.deserialize,
         allOffsets,
       ) ??
       PlayNowState();
   object.rating = reader.readObjectOrNull<Rating>(
-        offsets[4],
+        offsets[5],
         RatingSchema.deserialize,
         allOffsets,
       ) ??
       Rating();
   object.urls = reader.readObjectOrNull<PlayUrls>(
-        offsets[5],
+        offsets[6],
         PlayUrlsSchema.deserialize,
         allOffsets,
       ) ??
       PlayUrls();
   object.watchState = reader.readObjectOrNull<PlayState>(
-        offsets[6],
+        offsets[7],
         PlayStateSchema.deserialize,
         allOffsets,
       ) ??
@@ -12497,27 +14157,29 @@ P _playableFileDeserializeProp<P>(
     case 2:
       return (reader.readBool(offset)) as P;
     case 3:
+      return (reader.readLong(offset)) as P;
+    case 4:
       return (reader.readObjectOrNull<PlayNowState>(
             offset,
             PlayNowStateSchema.deserialize,
             allOffsets,
           ) ??
           PlayNowState()) as P;
-    case 4:
+    case 5:
       return (reader.readObjectOrNull<Rating>(
             offset,
             RatingSchema.deserialize,
             allOffsets,
           ) ??
           Rating()) as P;
-    case 5:
+    case 6:
       return (reader.readObjectOrNull<PlayUrls>(
             offset,
             PlayUrlsSchema.deserialize,
             allOffsets,
           ) ??
           PlayUrls()) as P;
-    case 6:
+    case 7:
       return (reader.readObjectOrNull<PlayState>(
             offset,
             PlayStateSchema.deserialize,
@@ -12595,6 +14257,61 @@ extension PlayableFileByIndex on IsarCollection<PlayableFile> {
       {bool saveLinks = true}) {
     return putAllByIndexSync(r'fileId', objects, saveLinks: saveLinks);
   }
+
+  Future<PlayableFile?> getByLibraryConfigId(int libraryConfigId) {
+    return getByIndex(r'libraryConfigId', [libraryConfigId]);
+  }
+
+  PlayableFile? getByLibraryConfigIdSync(int libraryConfigId) {
+    return getByIndexSync(r'libraryConfigId', [libraryConfigId]);
+  }
+
+  Future<bool> deleteByLibraryConfigId(int libraryConfigId) {
+    return deleteByIndex(r'libraryConfigId', [libraryConfigId]);
+  }
+
+  bool deleteByLibraryConfigIdSync(int libraryConfigId) {
+    return deleteByIndexSync(r'libraryConfigId', [libraryConfigId]);
+  }
+
+  Future<List<PlayableFile?>> getAllByLibraryConfigId(
+      List<int> libraryConfigIdValues) {
+    final values = libraryConfigIdValues.map((e) => [e]).toList();
+    return getAllByIndex(r'libraryConfigId', values);
+  }
+
+  List<PlayableFile?> getAllByLibraryConfigIdSync(
+      List<int> libraryConfigIdValues) {
+    final values = libraryConfigIdValues.map((e) => [e]).toList();
+    return getAllByIndexSync(r'libraryConfigId', values);
+  }
+
+  Future<int> deleteAllByLibraryConfigId(List<int> libraryConfigIdValues) {
+    final values = libraryConfigIdValues.map((e) => [e]).toList();
+    return deleteAllByIndex(r'libraryConfigId', values);
+  }
+
+  int deleteAllByLibraryConfigIdSync(List<int> libraryConfigIdValues) {
+    final values = libraryConfigIdValues.map((e) => [e]).toList();
+    return deleteAllByIndexSync(r'libraryConfigId', values);
+  }
+
+  Future<Id> putByLibraryConfigId(PlayableFile object) {
+    return putByIndex(r'libraryConfigId', object);
+  }
+
+  Id putByLibraryConfigIdSync(PlayableFile object, {bool saveLinks = true}) {
+    return putByIndexSync(r'libraryConfigId', object, saveLinks: saveLinks);
+  }
+
+  Future<List<Id>> putAllByLibraryConfigId(List<PlayableFile> objects) {
+    return putAllByIndex(r'libraryConfigId', objects);
+  }
+
+  List<Id> putAllByLibraryConfigIdSync(List<PlayableFile> objects,
+      {bool saveLinks = true}) {
+    return putAllByIndexSync(r'libraryConfigId', objects, saveLinks: saveLinks);
+  }
 }
 
 extension PlayableFileQueryWhereSort
@@ -12602,6 +14319,14 @@ extension PlayableFileQueryWhereSort
   QueryBuilder<PlayableFile, PlayableFile, QAfterWhere> anyId() {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(const IdWhereClause.any());
+    });
+  }
+
+  QueryBuilder<PlayableFile, PlayableFile, QAfterWhere> anyLibraryConfigId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        const IndexWhereClause.any(indexName: r'libraryConfigId'),
+      );
     });
   }
 }
@@ -12738,6 +14463,99 @@ extension PlayableFileQueryWhere
               includeUpper: false,
             ));
       }
+    });
+  }
+
+  QueryBuilder<PlayableFile, PlayableFile, QAfterWhereClause>
+      libraryConfigIdEqualTo(int libraryConfigId) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'libraryConfigId',
+        value: [libraryConfigId],
+      ));
+    });
+  }
+
+  QueryBuilder<PlayableFile, PlayableFile, QAfterWhereClause>
+      libraryConfigIdNotEqualTo(int libraryConfigId) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'libraryConfigId',
+              lower: [],
+              upper: [libraryConfigId],
+              includeUpper: false,
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'libraryConfigId',
+              lower: [libraryConfigId],
+              includeLower: false,
+              upper: [],
+            ));
+      } else {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'libraryConfigId',
+              lower: [libraryConfigId],
+              includeLower: false,
+              upper: [],
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'libraryConfigId',
+              lower: [],
+              upper: [libraryConfigId],
+              includeUpper: false,
+            ));
+      }
+    });
+  }
+
+  QueryBuilder<PlayableFile, PlayableFile, QAfterWhereClause>
+      libraryConfigIdGreaterThan(
+    int libraryConfigId, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'libraryConfigId',
+        lower: [libraryConfigId],
+        includeLower: include,
+        upper: [],
+      ));
+    });
+  }
+
+  QueryBuilder<PlayableFile, PlayableFile, QAfterWhereClause>
+      libraryConfigIdLessThan(
+    int libraryConfigId, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'libraryConfigId',
+        lower: [],
+        upper: [libraryConfigId],
+        includeUpper: include,
+      ));
+    });
+  }
+
+  QueryBuilder<PlayableFile, PlayableFile, QAfterWhereClause>
+      libraryConfigIdBetween(
+    int lowerLibraryConfigId,
+    int upperLibraryConfigId, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'libraryConfigId',
+        lower: [lowerLibraryConfigId],
+        includeLower: includeLower,
+        upper: [upperLibraryConfigId],
+        includeUpper: includeUpper,
+      ));
     });
   }
 }
@@ -13095,6 +14913,62 @@ extension PlayableFileQueryFilter
       ));
     });
   }
+
+  QueryBuilder<PlayableFile, PlayableFile, QAfterFilterCondition>
+      libraryConfigIdEqualTo(int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'libraryConfigId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<PlayableFile, PlayableFile, QAfterFilterCondition>
+      libraryConfigIdGreaterThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'libraryConfigId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<PlayableFile, PlayableFile, QAfterFilterCondition>
+      libraryConfigIdLessThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'libraryConfigId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<PlayableFile, PlayableFile, QAfterFilterCondition>
+      libraryConfigIdBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'libraryConfigId',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
 }
 
 extension PlayableFileQueryObject
@@ -13168,6 +15042,20 @@ extension PlayableFileQuerySortBy
       return query.addSortBy(r'isVideo', Sort.desc);
     });
   }
+
+  QueryBuilder<PlayableFile, PlayableFile, QAfterSortBy>
+      sortByLibraryConfigId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'libraryConfigId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PlayableFile, PlayableFile, QAfterSortBy>
+      sortByLibraryConfigIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'libraryConfigId', Sort.desc);
+    });
+  }
 }
 
 extension PlayableFileQuerySortThenBy
@@ -13219,6 +15107,20 @@ extension PlayableFileQuerySortThenBy
       return query.addSortBy(r'isVideo', Sort.desc);
     });
   }
+
+  QueryBuilder<PlayableFile, PlayableFile, QAfterSortBy>
+      thenByLibraryConfigId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'libraryConfigId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<PlayableFile, PlayableFile, QAfterSortBy>
+      thenByLibraryConfigIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'libraryConfigId', Sort.desc);
+    });
+  }
 }
 
 extension PlayableFileQueryWhereDistinct
@@ -13240,6 +15142,13 @@ extension PlayableFileQueryWhereDistinct
   QueryBuilder<PlayableFile, PlayableFile, QDistinct> distinctByIsVideo() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'isVideo');
+    });
+  }
+
+  QueryBuilder<PlayableFile, PlayableFile, QDistinct>
+      distinctByLibraryConfigId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'libraryConfigId');
     });
   }
 }
@@ -13267,6 +15176,12 @@ extension PlayableFileQueryProperty
   QueryBuilder<PlayableFile, bool, QQueryOperations> isVideoProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'isVideo');
+    });
+  }
+
+  QueryBuilder<PlayableFile, int, QQueryOperations> libraryConfigIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'libraryConfigId');
     });
   }
 
@@ -13312,29 +15227,39 @@ const SeriesSchema = CollectionSchema(
       name: r'anilistId',
       type: IsarType.string,
     ),
-    r'malId': PropertySchema(
+    r'libraryConfigId': PropertySchema(
       id: 1,
+      name: r'libraryConfigId',
+      type: IsarType.long,
+    ),
+    r'malId': PropertySchema(
+      id: 2,
       name: r'malId',
       type: IsarType.string,
     ),
     r'metaData': PropertySchema(
-      id: 2,
+      id: 3,
       name: r'metaData',
       type: IsarType.object,
       target: r'MetaData',
     ),
     r'seriesId': PropertySchema(
-      id: 3,
+      id: 4,
       name: r'seriesId',
       type: IsarType.string,
     ),
+    r'title': PropertySchema(
+      id: 5,
+      name: r'title',
+      type: IsarType.string,
+    ),
     r'tmdbId': PropertySchema(
-      id: 4,
+      id: 6,
       name: r'tmdbId',
       type: IsarType.string,
     ),
     r'tvDetails': PropertySchema(
-      id: 5,
+      id: 7,
       name: r'tvDetails',
       type: IsarType.object,
       target: r'TvShowDetail',
@@ -13397,6 +15322,32 @@ const SeriesSchema = CollectionSchema(
           caseSensitive: true,
         )
       ],
+    ),
+    r'title': IndexSchema(
+      id: -7636685945352118059,
+      name: r'title',
+      unique: true,
+      replace: true,
+      properties: [
+        IndexPropertySchema(
+          name: r'title',
+          type: IndexType.hash,
+          caseSensitive: true,
+        )
+      ],
+    ),
+    r'libraryConfigId': IndexSchema(
+      id: -1052534281605808785,
+      name: r'libraryConfigId',
+      unique: true,
+      replace: true,
+      properties: [
+        IndexPropertySchema(
+          name: r'libraryConfigId',
+          type: IndexType.value,
+          caseSensitive: false,
+        )
+      ],
     )
   },
   links: {},
@@ -13443,6 +15394,12 @@ int _seriesEstimateSize(
     }
   }
   {
+    final value = object.title;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
     final value = object.tmdbId;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
@@ -13466,17 +15423,19 @@ void _seriesSerialize(
   Map<Type, List<int>> allOffsets,
 ) {
   writer.writeString(offsets[0], object.anilistId);
-  writer.writeString(offsets[1], object.malId);
+  writer.writeLong(offsets[1], object.libraryConfigId);
+  writer.writeString(offsets[2], object.malId);
   writer.writeObject<MetaData>(
-    offsets[2],
+    offsets[3],
     allOffsets,
     MetaDataSchema.serialize,
     object.metaData,
   );
-  writer.writeString(offsets[3], object.seriesId);
-  writer.writeString(offsets[4], object.tmdbId);
+  writer.writeString(offsets[4], object.seriesId);
+  writer.writeString(offsets[5], object.title);
+  writer.writeString(offsets[6], object.tmdbId);
   writer.writeObject<TvShowDetail>(
-    offsets[5],
+    offsets[7],
     allOffsets,
     TvShowDetailSchema.serialize,
     object.tvDetails,
@@ -13492,17 +15451,19 @@ Series _seriesDeserialize(
   final object = Series();
   object.anilistId = reader.readStringOrNull(offsets[0]);
   object.id = id;
-  object.malId = reader.readStringOrNull(offsets[1]);
+  object.libraryConfigId = reader.readLong(offsets[1]);
+  object.malId = reader.readStringOrNull(offsets[2]);
   object.metaData = reader.readObjectOrNull<MetaData>(
-        offsets[2],
+        offsets[3],
         MetaDataSchema.deserialize,
         allOffsets,
       ) ??
       MetaData();
-  object.seriesId = reader.readStringOrNull(offsets[3]);
-  object.tmdbId = reader.readStringOrNull(offsets[4]);
+  object.seriesId = reader.readStringOrNull(offsets[4]);
+  object.title = reader.readStringOrNull(offsets[5]);
+  object.tmdbId = reader.readStringOrNull(offsets[6]);
   object.tvDetails = reader.readObjectOrNull<TvShowDetail>(
-    offsets[5],
+    offsets[7],
     TvShowDetailSchema.deserialize,
     allOffsets,
   );
@@ -13519,19 +15480,23 @@ P _seriesDeserializeProp<P>(
     case 0:
       return (reader.readStringOrNull(offset)) as P;
     case 1:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readLong(offset)) as P;
     case 2:
+      return (reader.readStringOrNull(offset)) as P;
+    case 3:
       return (reader.readObjectOrNull<MetaData>(
             offset,
             MetaDataSchema.deserialize,
             allOffsets,
           ) ??
           MetaData()) as P;
-    case 3:
-      return (reader.readStringOrNull(offset)) as P;
     case 4:
       return (reader.readStringOrNull(offset)) as P;
     case 5:
+      return (reader.readStringOrNull(offset)) as P;
+    case 6:
+      return (reader.readStringOrNull(offset)) as P;
+    case 7:
       return (reader.readObjectOrNull<TvShowDetail>(
         offset,
         TvShowDetailSchema.deserialize,
@@ -13763,12 +15728,126 @@ extension SeriesByIndex on IsarCollection<Series> {
       {bool saveLinks = true}) {
     return putAllByIndexSync(r'anilistId', objects, saveLinks: saveLinks);
   }
+
+  Future<Series?> getByTitle(String? title) {
+    return getByIndex(r'title', [title]);
+  }
+
+  Series? getByTitleSync(String? title) {
+    return getByIndexSync(r'title', [title]);
+  }
+
+  Future<bool> deleteByTitle(String? title) {
+    return deleteByIndex(r'title', [title]);
+  }
+
+  bool deleteByTitleSync(String? title) {
+    return deleteByIndexSync(r'title', [title]);
+  }
+
+  Future<List<Series?>> getAllByTitle(List<String?> titleValues) {
+    final values = titleValues.map((e) => [e]).toList();
+    return getAllByIndex(r'title', values);
+  }
+
+  List<Series?> getAllByTitleSync(List<String?> titleValues) {
+    final values = titleValues.map((e) => [e]).toList();
+    return getAllByIndexSync(r'title', values);
+  }
+
+  Future<int> deleteAllByTitle(List<String?> titleValues) {
+    final values = titleValues.map((e) => [e]).toList();
+    return deleteAllByIndex(r'title', values);
+  }
+
+  int deleteAllByTitleSync(List<String?> titleValues) {
+    final values = titleValues.map((e) => [e]).toList();
+    return deleteAllByIndexSync(r'title', values);
+  }
+
+  Future<Id> putByTitle(Series object) {
+    return putByIndex(r'title', object);
+  }
+
+  Id putByTitleSync(Series object, {bool saveLinks = true}) {
+    return putByIndexSync(r'title', object, saveLinks: saveLinks);
+  }
+
+  Future<List<Id>> putAllByTitle(List<Series> objects) {
+    return putAllByIndex(r'title', objects);
+  }
+
+  List<Id> putAllByTitleSync(List<Series> objects, {bool saveLinks = true}) {
+    return putAllByIndexSync(r'title', objects, saveLinks: saveLinks);
+  }
+
+  Future<Series?> getByLibraryConfigId(int libraryConfigId) {
+    return getByIndex(r'libraryConfigId', [libraryConfigId]);
+  }
+
+  Series? getByLibraryConfigIdSync(int libraryConfigId) {
+    return getByIndexSync(r'libraryConfigId', [libraryConfigId]);
+  }
+
+  Future<bool> deleteByLibraryConfigId(int libraryConfigId) {
+    return deleteByIndex(r'libraryConfigId', [libraryConfigId]);
+  }
+
+  bool deleteByLibraryConfigIdSync(int libraryConfigId) {
+    return deleteByIndexSync(r'libraryConfigId', [libraryConfigId]);
+  }
+
+  Future<List<Series?>> getAllByLibraryConfigId(
+      List<int> libraryConfigIdValues) {
+    final values = libraryConfigIdValues.map((e) => [e]).toList();
+    return getAllByIndex(r'libraryConfigId', values);
+  }
+
+  List<Series?> getAllByLibraryConfigIdSync(List<int> libraryConfigIdValues) {
+    final values = libraryConfigIdValues.map((e) => [e]).toList();
+    return getAllByIndexSync(r'libraryConfigId', values);
+  }
+
+  Future<int> deleteAllByLibraryConfigId(List<int> libraryConfigIdValues) {
+    final values = libraryConfigIdValues.map((e) => [e]).toList();
+    return deleteAllByIndex(r'libraryConfigId', values);
+  }
+
+  int deleteAllByLibraryConfigIdSync(List<int> libraryConfigIdValues) {
+    final values = libraryConfigIdValues.map((e) => [e]).toList();
+    return deleteAllByIndexSync(r'libraryConfigId', values);
+  }
+
+  Future<Id> putByLibraryConfigId(Series object) {
+    return putByIndex(r'libraryConfigId', object);
+  }
+
+  Id putByLibraryConfigIdSync(Series object, {bool saveLinks = true}) {
+    return putByIndexSync(r'libraryConfigId', object, saveLinks: saveLinks);
+  }
+
+  Future<List<Id>> putAllByLibraryConfigId(List<Series> objects) {
+    return putAllByIndex(r'libraryConfigId', objects);
+  }
+
+  List<Id> putAllByLibraryConfigIdSync(List<Series> objects,
+      {bool saveLinks = true}) {
+    return putAllByIndexSync(r'libraryConfigId', objects, saveLinks: saveLinks);
+  }
 }
 
 extension SeriesQueryWhereSort on QueryBuilder<Series, Series, QWhere> {
   QueryBuilder<Series, Series, QAfterWhere> anyId() {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(const IdWhereClause.any());
+    });
+  }
+
+  QueryBuilder<Series, Series, QAfterWhere> anyLibraryConfigId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        const IndexWhereClause.any(indexName: r'libraryConfigId'),
+      );
     });
   }
 }
@@ -14097,6 +16176,160 @@ extension SeriesQueryWhere on QueryBuilder<Series, Series, QWhereClause> {
       }
     });
   }
+
+  QueryBuilder<Series, Series, QAfterWhereClause> titleIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'title',
+        value: [null],
+      ));
+    });
+  }
+
+  QueryBuilder<Series, Series, QAfterWhereClause> titleIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'title',
+        lower: [null],
+        includeLower: false,
+        upper: [],
+      ));
+    });
+  }
+
+  QueryBuilder<Series, Series, QAfterWhereClause> titleEqualTo(String? title) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'title',
+        value: [title],
+      ));
+    });
+  }
+
+  QueryBuilder<Series, Series, QAfterWhereClause> titleNotEqualTo(
+      String? title) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'title',
+              lower: [],
+              upper: [title],
+              includeUpper: false,
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'title',
+              lower: [title],
+              includeLower: false,
+              upper: [],
+            ));
+      } else {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'title',
+              lower: [title],
+              includeLower: false,
+              upper: [],
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'title',
+              lower: [],
+              upper: [title],
+              includeUpper: false,
+            ));
+      }
+    });
+  }
+
+  QueryBuilder<Series, Series, QAfterWhereClause> libraryConfigIdEqualTo(
+      int libraryConfigId) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'libraryConfigId',
+        value: [libraryConfigId],
+      ));
+    });
+  }
+
+  QueryBuilder<Series, Series, QAfterWhereClause> libraryConfigIdNotEqualTo(
+      int libraryConfigId) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'libraryConfigId',
+              lower: [],
+              upper: [libraryConfigId],
+              includeUpper: false,
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'libraryConfigId',
+              lower: [libraryConfigId],
+              includeLower: false,
+              upper: [],
+            ));
+      } else {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'libraryConfigId',
+              lower: [libraryConfigId],
+              includeLower: false,
+              upper: [],
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'libraryConfigId',
+              lower: [],
+              upper: [libraryConfigId],
+              includeUpper: false,
+            ));
+      }
+    });
+  }
+
+  QueryBuilder<Series, Series, QAfterWhereClause> libraryConfigIdGreaterThan(
+    int libraryConfigId, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'libraryConfigId',
+        lower: [libraryConfigId],
+        includeLower: include,
+        upper: [],
+      ));
+    });
+  }
+
+  QueryBuilder<Series, Series, QAfterWhereClause> libraryConfigIdLessThan(
+    int libraryConfigId, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'libraryConfigId',
+        lower: [],
+        upper: [libraryConfigId],
+        includeUpper: include,
+      ));
+    });
+  }
+
+  QueryBuilder<Series, Series, QAfterWhereClause> libraryConfigIdBetween(
+    int lowerLibraryConfigId,
+    int upperLibraryConfigId, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'libraryConfigId',
+        lower: [lowerLibraryConfigId],
+        includeLower: includeLower,
+        upper: [upperLibraryConfigId],
+        includeUpper: includeUpper,
+      ));
+    });
+  }
 }
 
 extension SeriesQueryFilter on QueryBuilder<Series, Series, QFilterCondition> {
@@ -14290,6 +16523,60 @@ extension SeriesQueryFilter on QueryBuilder<Series, Series, QFilterCondition> {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.between(
         property: r'id',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<Series, Series, QAfterFilterCondition> libraryConfigIdEqualTo(
+      int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'libraryConfigId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Series, Series, QAfterFilterCondition>
+      libraryConfigIdGreaterThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'libraryConfigId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Series, Series, QAfterFilterCondition> libraryConfigIdLessThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'libraryConfigId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Series, Series, QAfterFilterCondition> libraryConfigIdBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'libraryConfigId',
         lower: lower,
         includeLower: includeLower,
         upper: upper,
@@ -14590,6 +16877,152 @@ extension SeriesQueryFilter on QueryBuilder<Series, Series, QFilterCondition> {
     });
   }
 
+  QueryBuilder<Series, Series, QAfterFilterCondition> titleIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'title',
+      ));
+    });
+  }
+
+  QueryBuilder<Series, Series, QAfterFilterCondition> titleIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'title',
+      ));
+    });
+  }
+
+  QueryBuilder<Series, Series, QAfterFilterCondition> titleEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'title',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Series, Series, QAfterFilterCondition> titleGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'title',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Series, Series, QAfterFilterCondition> titleLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'title',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Series, Series, QAfterFilterCondition> titleBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'title',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Series, Series, QAfterFilterCondition> titleStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'title',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Series, Series, QAfterFilterCondition> titleEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'title',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Series, Series, QAfterFilterCondition> titleContains(
+      String value,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'title',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Series, Series, QAfterFilterCondition> titleMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'title',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Series, Series, QAfterFilterCondition> titleIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'title',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<Series, Series, QAfterFilterCondition> titleIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'title',
+        value: '',
+      ));
+    });
+  }
+
   QueryBuilder<Series, Series, QAfterFilterCondition> tmdbIdIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
@@ -14784,6 +17217,18 @@ extension SeriesQuerySortBy on QueryBuilder<Series, Series, QSortBy> {
     });
   }
 
+  QueryBuilder<Series, Series, QAfterSortBy> sortByLibraryConfigId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'libraryConfigId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Series, Series, QAfterSortBy> sortByLibraryConfigIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'libraryConfigId', Sort.desc);
+    });
+  }
+
   QueryBuilder<Series, Series, QAfterSortBy> sortByMalId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'malId', Sort.asc);
@@ -14805,6 +17250,18 @@ extension SeriesQuerySortBy on QueryBuilder<Series, Series, QSortBy> {
   QueryBuilder<Series, Series, QAfterSortBy> sortBySeriesIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'seriesId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Series, Series, QAfterSortBy> sortByTitle() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'title', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Series, Series, QAfterSortBy> sortByTitleDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'title', Sort.desc);
     });
   }
 
@@ -14846,6 +17303,18 @@ extension SeriesQuerySortThenBy on QueryBuilder<Series, Series, QSortThenBy> {
     });
   }
 
+  QueryBuilder<Series, Series, QAfterSortBy> thenByLibraryConfigId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'libraryConfigId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Series, Series, QAfterSortBy> thenByLibraryConfigIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'libraryConfigId', Sort.desc);
+    });
+  }
+
   QueryBuilder<Series, Series, QAfterSortBy> thenByMalId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'malId', Sort.asc);
@@ -14870,6 +17339,18 @@ extension SeriesQuerySortThenBy on QueryBuilder<Series, Series, QSortThenBy> {
     });
   }
 
+  QueryBuilder<Series, Series, QAfterSortBy> thenByTitle() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'title', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Series, Series, QAfterSortBy> thenByTitleDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'title', Sort.desc);
+    });
+  }
+
   QueryBuilder<Series, Series, QAfterSortBy> thenByTmdbId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'tmdbId', Sort.asc);
@@ -14891,6 +17372,12 @@ extension SeriesQueryWhereDistinct on QueryBuilder<Series, Series, QDistinct> {
     });
   }
 
+  QueryBuilder<Series, Series, QDistinct> distinctByLibraryConfigId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'libraryConfigId');
+    });
+  }
+
   QueryBuilder<Series, Series, QDistinct> distinctByMalId(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -14902,6 +17389,13 @@ extension SeriesQueryWhereDistinct on QueryBuilder<Series, Series, QDistinct> {
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'seriesId', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<Series, Series, QDistinct> distinctByTitle(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'title', caseSensitive: caseSensitive);
     });
   }
 
@@ -14926,6 +17420,12 @@ extension SeriesQueryProperty on QueryBuilder<Series, Series, QQueryProperty> {
     });
   }
 
+  QueryBuilder<Series, int, QQueryOperations> libraryConfigIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'libraryConfigId');
+    });
+  }
+
   QueryBuilder<Series, String?, QQueryOperations> malIdProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'malId');
@@ -14944,6 +17444,12 @@ extension SeriesQueryProperty on QueryBuilder<Series, Series, QQueryProperty> {
     });
   }
 
+  QueryBuilder<Series, String?, QQueryOperations> titleProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'title');
+    });
+  }
+
   QueryBuilder<Series, String?, QQueryOperations> tmdbIdProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'tmdbId');
@@ -14953,6 +17459,823 @@ extension SeriesQueryProperty on QueryBuilder<Series, Series, QQueryProperty> {
   QueryBuilder<Series, TvShowDetail?, QQueryOperations> tvDetailsProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'tvDetails');
+    });
+  }
+}
+
+// coverage:ignore-file
+// ignore_for_file: duplicate_ignore, non_constant_identifier_names, constant_identifier_names, invalid_use_of_protected_member, unnecessary_cast, prefer_const_constructors, lines_longer_than_80_chars, require_trailing_commas, inference_failure_on_function_invocation, unnecessary_parenthesis, unnecessary_raw_strings, unnecessary_null_checks, join_return_with_assignment, prefer_final_locals, avoid_js_rounded_ints, avoid_positional_boolean_parameters, always_specify_types
+
+extension GetLibraryConfigCollection on Isar {
+  IsarCollection<LibraryConfig> get libraryConfigs => this.collection();
+}
+
+const LibraryConfigSchema = CollectionSchema(
+  name: r'LibraryConfig',
+  id: 5137838541738598815,
+  properties: {
+    r'contentType': PropertySchema(
+      id: 0,
+      name: r'contentType',
+      type: IsarType.byte,
+      enumMap: _LibraryConfigcontentTypeEnumValueMap,
+    ),
+    r'displayName': PropertySchema(
+      id: 1,
+      name: r'displayName',
+      type: IsarType.string,
+    ),
+    r'folderPaths': PropertySchema(
+      id: 2,
+      name: r'folderPaths',
+      type: IsarType.stringList,
+    )
+  },
+  estimateSize: _libraryConfigEstimateSize,
+  serialize: _libraryConfigSerialize,
+  deserialize: _libraryConfigDeserialize,
+  deserializeProp: _libraryConfigDeserializeProp,
+  idName: r'id',
+  indexes: {},
+  links: {},
+  embeddedSchemas: {},
+  getId: _libraryConfigGetId,
+  getLinks: _libraryConfigGetLinks,
+  attach: _libraryConfigAttach,
+  version: '3.1.0+1',
+);
+
+int _libraryConfigEstimateSize(
+  LibraryConfig object,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  var bytesCount = offsets.last;
+  bytesCount += 3 + object.displayName.length * 3;
+  bytesCount += 3 + object.folderPaths.length * 3;
+  {
+    for (var i = 0; i < object.folderPaths.length; i++) {
+      final value = object.folderPaths[i];
+      bytesCount += value.length * 3;
+    }
+  }
+  return bytesCount;
+}
+
+void _libraryConfigSerialize(
+  LibraryConfig object,
+  IsarWriter writer,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  writer.writeByte(offsets[0], object.contentType.index);
+  writer.writeString(offsets[1], object.displayName);
+  writer.writeStringList(offsets[2], object.folderPaths);
+}
+
+LibraryConfig _libraryConfigDeserialize(
+  Id id,
+  IsarReader reader,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  final object = LibraryConfig(
+    contentType: _LibraryConfigcontentTypeValueEnumMap[
+            reader.readByteOrNull(offsets[0])] ??
+        LibraryContentType.movie,
+    displayName: reader.readString(offsets[1]),
+    folderPaths: reader.readStringList(offsets[2]) ?? [],
+  );
+  object.id = id;
+  return object;
+}
+
+P _libraryConfigDeserializeProp<P>(
+  IsarReader reader,
+  int propertyId,
+  int offset,
+  Map<Type, List<int>> allOffsets,
+) {
+  switch (propertyId) {
+    case 0:
+      return (_LibraryConfigcontentTypeValueEnumMap[
+              reader.readByteOrNull(offset)] ??
+          LibraryContentType.movie) as P;
+    case 1:
+      return (reader.readString(offset)) as P;
+    case 2:
+      return (reader.readStringList(offset) ?? []) as P;
+    default:
+      throw IsarError('Unknown property with id $propertyId');
+  }
+}
+
+const _LibraryConfigcontentTypeEnumValueMap = {
+  'movie': 0,
+  'tvShow': 1,
+  'manga': 2,
+  'mixed': 3,
+};
+const _LibraryConfigcontentTypeValueEnumMap = {
+  0: LibraryContentType.movie,
+  1: LibraryContentType.tvShow,
+  2: LibraryContentType.manga,
+  3: LibraryContentType.mixed,
+};
+
+Id _libraryConfigGetId(LibraryConfig object) {
+  return object.id;
+}
+
+List<IsarLinkBase<dynamic>> _libraryConfigGetLinks(LibraryConfig object) {
+  return [];
+}
+
+void _libraryConfigAttach(
+    IsarCollection<dynamic> col, Id id, LibraryConfig object) {
+  object.id = id;
+}
+
+extension LibraryConfigQueryWhereSort
+    on QueryBuilder<LibraryConfig, LibraryConfig, QWhere> {
+  QueryBuilder<LibraryConfig, LibraryConfig, QAfterWhere> anyId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(const IdWhereClause.any());
+    });
+  }
+}
+
+extension LibraryConfigQueryWhere
+    on QueryBuilder<LibraryConfig, LibraryConfig, QWhereClause> {
+  QueryBuilder<LibraryConfig, LibraryConfig, QAfterWhereClause> idEqualTo(
+      Id id) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IdWhereClause.between(
+        lower: id,
+        upper: id,
+      ));
+    });
+  }
+
+  QueryBuilder<LibraryConfig, LibraryConfig, QAfterWhereClause> idNotEqualTo(
+      Id id) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(
+              IdWhereClause.lessThan(upper: id, includeUpper: false),
+            )
+            .addWhereClause(
+              IdWhereClause.greaterThan(lower: id, includeLower: false),
+            );
+      } else {
+        return query
+            .addWhereClause(
+              IdWhereClause.greaterThan(lower: id, includeLower: false),
+            )
+            .addWhereClause(
+              IdWhereClause.lessThan(upper: id, includeUpper: false),
+            );
+      }
+    });
+  }
+
+  QueryBuilder<LibraryConfig, LibraryConfig, QAfterWhereClause> idGreaterThan(
+      Id id,
+      {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IdWhereClause.greaterThan(lower: id, includeLower: include),
+      );
+    });
+  }
+
+  QueryBuilder<LibraryConfig, LibraryConfig, QAfterWhereClause> idLessThan(
+      Id id,
+      {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IdWhereClause.lessThan(upper: id, includeUpper: include),
+      );
+    });
+  }
+
+  QueryBuilder<LibraryConfig, LibraryConfig, QAfterWhereClause> idBetween(
+    Id lowerId,
+    Id upperId, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IdWhereClause.between(
+        lower: lowerId,
+        includeLower: includeLower,
+        upper: upperId,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+}
+
+extension LibraryConfigQueryFilter
+    on QueryBuilder<LibraryConfig, LibraryConfig, QFilterCondition> {
+  QueryBuilder<LibraryConfig, LibraryConfig, QAfterFilterCondition>
+      contentTypeEqualTo(LibraryContentType value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'contentType',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<LibraryConfig, LibraryConfig, QAfterFilterCondition>
+      contentTypeGreaterThan(
+    LibraryContentType value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'contentType',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<LibraryConfig, LibraryConfig, QAfterFilterCondition>
+      contentTypeLessThan(
+    LibraryContentType value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'contentType',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<LibraryConfig, LibraryConfig, QAfterFilterCondition>
+      contentTypeBetween(
+    LibraryContentType lower,
+    LibraryContentType upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'contentType',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<LibraryConfig, LibraryConfig, QAfterFilterCondition>
+      displayNameEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'displayName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LibraryConfig, LibraryConfig, QAfterFilterCondition>
+      displayNameGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'displayName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LibraryConfig, LibraryConfig, QAfterFilterCondition>
+      displayNameLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'displayName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LibraryConfig, LibraryConfig, QAfterFilterCondition>
+      displayNameBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'displayName',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LibraryConfig, LibraryConfig, QAfterFilterCondition>
+      displayNameStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'displayName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LibraryConfig, LibraryConfig, QAfterFilterCondition>
+      displayNameEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'displayName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LibraryConfig, LibraryConfig, QAfterFilterCondition>
+      displayNameContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'displayName',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LibraryConfig, LibraryConfig, QAfterFilterCondition>
+      displayNameMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'displayName',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LibraryConfig, LibraryConfig, QAfterFilterCondition>
+      displayNameIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'displayName',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<LibraryConfig, LibraryConfig, QAfterFilterCondition>
+      displayNameIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'displayName',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<LibraryConfig, LibraryConfig, QAfterFilterCondition>
+      folderPathsElementEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'folderPaths',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LibraryConfig, LibraryConfig, QAfterFilterCondition>
+      folderPathsElementGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'folderPaths',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LibraryConfig, LibraryConfig, QAfterFilterCondition>
+      folderPathsElementLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'folderPaths',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LibraryConfig, LibraryConfig, QAfterFilterCondition>
+      folderPathsElementBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'folderPaths',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LibraryConfig, LibraryConfig, QAfterFilterCondition>
+      folderPathsElementStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'folderPaths',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LibraryConfig, LibraryConfig, QAfterFilterCondition>
+      folderPathsElementEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'folderPaths',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LibraryConfig, LibraryConfig, QAfterFilterCondition>
+      folderPathsElementContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'folderPaths',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LibraryConfig, LibraryConfig, QAfterFilterCondition>
+      folderPathsElementMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'folderPaths',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<LibraryConfig, LibraryConfig, QAfterFilterCondition>
+      folderPathsElementIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'folderPaths',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<LibraryConfig, LibraryConfig, QAfterFilterCondition>
+      folderPathsElementIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'folderPaths',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<LibraryConfig, LibraryConfig, QAfterFilterCondition>
+      folderPathsLengthEqualTo(int length) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'folderPaths',
+        length,
+        true,
+        length,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<LibraryConfig, LibraryConfig, QAfterFilterCondition>
+      folderPathsIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'folderPaths',
+        0,
+        true,
+        0,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<LibraryConfig, LibraryConfig, QAfterFilterCondition>
+      folderPathsIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'folderPaths',
+        0,
+        false,
+        999999,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<LibraryConfig, LibraryConfig, QAfterFilterCondition>
+      folderPathsLengthLessThan(
+    int length, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'folderPaths',
+        0,
+        true,
+        length,
+        include,
+      );
+    });
+  }
+
+  QueryBuilder<LibraryConfig, LibraryConfig, QAfterFilterCondition>
+      folderPathsLengthGreaterThan(
+    int length, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'folderPaths',
+        length,
+        include,
+        999999,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<LibraryConfig, LibraryConfig, QAfterFilterCondition>
+      folderPathsLengthBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'folderPaths',
+        lower,
+        includeLower,
+        upper,
+        includeUpper,
+      );
+    });
+  }
+
+  QueryBuilder<LibraryConfig, LibraryConfig, QAfterFilterCondition> idEqualTo(
+      Id value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'id',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<LibraryConfig, LibraryConfig, QAfterFilterCondition>
+      idGreaterThan(
+    Id value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'id',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<LibraryConfig, LibraryConfig, QAfterFilterCondition> idLessThan(
+    Id value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'id',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<LibraryConfig, LibraryConfig, QAfterFilterCondition> idBetween(
+    Id lower,
+    Id upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'id',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+}
+
+extension LibraryConfigQueryObject
+    on QueryBuilder<LibraryConfig, LibraryConfig, QFilterCondition> {}
+
+extension LibraryConfigQueryLinks
+    on QueryBuilder<LibraryConfig, LibraryConfig, QFilterCondition> {}
+
+extension LibraryConfigQuerySortBy
+    on QueryBuilder<LibraryConfig, LibraryConfig, QSortBy> {
+  QueryBuilder<LibraryConfig, LibraryConfig, QAfterSortBy> sortByContentType() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'contentType', Sort.asc);
+    });
+  }
+
+  QueryBuilder<LibraryConfig, LibraryConfig, QAfterSortBy>
+      sortByContentTypeDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'contentType', Sort.desc);
+    });
+  }
+
+  QueryBuilder<LibraryConfig, LibraryConfig, QAfterSortBy> sortByDisplayName() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'displayName', Sort.asc);
+    });
+  }
+
+  QueryBuilder<LibraryConfig, LibraryConfig, QAfterSortBy>
+      sortByDisplayNameDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'displayName', Sort.desc);
+    });
+  }
+}
+
+extension LibraryConfigQuerySortThenBy
+    on QueryBuilder<LibraryConfig, LibraryConfig, QSortThenBy> {
+  QueryBuilder<LibraryConfig, LibraryConfig, QAfterSortBy> thenByContentType() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'contentType', Sort.asc);
+    });
+  }
+
+  QueryBuilder<LibraryConfig, LibraryConfig, QAfterSortBy>
+      thenByContentTypeDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'contentType', Sort.desc);
+    });
+  }
+
+  QueryBuilder<LibraryConfig, LibraryConfig, QAfterSortBy> thenByDisplayName() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'displayName', Sort.asc);
+    });
+  }
+
+  QueryBuilder<LibraryConfig, LibraryConfig, QAfterSortBy>
+      thenByDisplayNameDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'displayName', Sort.desc);
+    });
+  }
+
+  QueryBuilder<LibraryConfig, LibraryConfig, QAfterSortBy> thenById() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'id', Sort.asc);
+    });
+  }
+
+  QueryBuilder<LibraryConfig, LibraryConfig, QAfterSortBy> thenByIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'id', Sort.desc);
+    });
+  }
+}
+
+extension LibraryConfigQueryWhereDistinct
+    on QueryBuilder<LibraryConfig, LibraryConfig, QDistinct> {
+  QueryBuilder<LibraryConfig, LibraryConfig, QDistinct>
+      distinctByContentType() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'contentType');
+    });
+  }
+
+  QueryBuilder<LibraryConfig, LibraryConfig, QDistinct> distinctByDisplayName(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'displayName', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<LibraryConfig, LibraryConfig, QDistinct>
+      distinctByFolderPaths() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'folderPaths');
+    });
+  }
+}
+
+extension LibraryConfigQueryProperty
+    on QueryBuilder<LibraryConfig, LibraryConfig, QQueryProperty> {
+  QueryBuilder<LibraryConfig, int, QQueryOperations> idProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'id');
+    });
+  }
+
+  QueryBuilder<LibraryConfig, LibraryContentType, QQueryOperations>
+      contentTypeProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'contentType');
+    });
+  }
+
+  QueryBuilder<LibraryConfig, String, QQueryOperations> displayNameProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'displayName');
+    });
+  }
+
+  QueryBuilder<LibraryConfig, List<String>, QQueryOperations>
+      folderPathsProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'folderPaths');
     });
   }
 }

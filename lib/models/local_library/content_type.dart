@@ -6,4 +6,5 @@ enum ContentType {
   musicVideo,
   mixedContent,
   photo,
+  manga
 }

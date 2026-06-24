@@ -1633,7 +1633,10 @@ class Movie {
 
   @Index(unique: true, replace: true)
   String? movieId; // App UUID lookup string if needed
+  @Index(unique: true, replace: true)
+  String? title;
 
+  @Index(unique: true, replace: true)
   String? playableFileId;
   @Index(unique: true, replace: true)
   String? tmdbId;
@@ -1642,9 +1645,14 @@ class Movie {
   @Index(unique: true, replace: true)
   String? anilistId;
   String? coverPath;
+  //@Index(unique: true, replace: true)
+    @Index(unique: true, replace: true)
+int libraryConfigId=0;
 
   MetaData metaData = MetaData();
-  MovieDetail moviedetail= MovieDetail();
+ //   @Index(unique: true, replace: true)
+
+  MovieDetail moviedetail = MovieDetail();
   Movie();
 
   factory Movie.fromJson(Map<dynamic, dynamic> json) {
@@ -1733,7 +1741,7 @@ class Movie {
     detail.keywords = parsedKeywords;
 
     // Attach populated details packet directly to the base tracking object
-     movie.moviedetail = detail;
+    movie.moviedetail = detail;
     return movie;
   }
 
@@ -1796,6 +1804,9 @@ class MangaSeries {
   String? malId;
   @Backlink(to: 'seriesLink')
   final chapters = IsarLinks<MangaChapter>();
+      @Index(unique: true, replace: true)
+int libraryConfigId=0;
+
 }
 
 @collection
@@ -1857,19 +1868,28 @@ class Person {
 
   @Index(unique: true, replace: true)
   String? tmdbPersonId; // Unique TMDB ID mapped as a searchable String index
+  @Index(unique: true, replace: true)
 
   bool adult = false;
   List<String> alsoKnownAs = const []; // Isar handles primitive lists natively
   String? biography;
+   @Index(unique: true, replace: true)
+
   String? birthday;
+    @Index(unique: true, replace: true)
+
   String? deathday;
   int gender = 0;
   String? homepage;
   @Index(unique: true, replace: true)
   String? imdbId;
   String knownForDepartment = '';
+  @Index(unique: true, replace: true)
+
   String name = '';
   String? placeOfBirth;
+    @Index(unique: true, replace: true)
+
   double popularity = 0.0;
   String? profilePath;
 
@@ -1987,6 +2007,8 @@ class PlayableFile {
 
   @Index(unique: true, replace: true)
   String? fileId; // Your custom string UUID if you use one
+    @Index(unique: true, replace: true)
+int libraryConfigId=0;
 
   String filePath = '';
   PlayState watchState = PlayState();
@@ -2027,10 +2049,35 @@ class Series {
   String? tmdbId;
   @Index(unique: true)
   String? anilistId;
+  @Index(unique: true, replace: true)
+  String? title;
 
+ // @Index(unique: true, replace: true)
   MetaData metaData = MetaData();
+    @Index(unique: true, replace: true)
+int libraryConfigId=0;
   TvShowDetail? tvDetails;
 }
+@collection
+class LibraryConfig {
+  Id id = Isar.autoIncrement;
+
+  late String displayName;
+
+  @enumerated
+  late LibraryContentType contentType;
+
+  // Emby behavior: Support multiple absolute physical directories per library
+  late List<String> folderPaths;
+
+  LibraryConfig({
+    required this.displayName,
+    required this.contentType,
+    required this.folderPaths,
+  });
+}
+
+enum LibraryContentType { movie, tvShow, manga,mixed }
 
 @collection
 class Season {

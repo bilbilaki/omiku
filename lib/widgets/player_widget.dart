@@ -8,7 +8,7 @@ import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:omiku/main.dart';
 import 'package:omiku/models/models.dart';
-import 'package:omiku/services/local_file_playlist_service.dart';
+import 'package:omiku/services/localfiles/local_file_playlist_service.dart';
 import 'package:path/path.dart' as p;
 
 //var userdata = UserDataService().decoderPreference;
