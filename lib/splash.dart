@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 import 'package:omiku/widgets/appUI/app_center_frame.dart';
-import 'package:omiku/widgets/manga/manga_library.dart';
 
 
 class SplashScreen extends StatefulWidget {

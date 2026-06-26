@@ -66,6 +66,8 @@ dependencies:
   shared_preferences: ^2.5.5
   background_downloader: ^9.5.5
   cross_platform_video_thumbnails: ^0.1.1
+  anilist:
+    path: ../anilist
 dev_dependencies:
   flutter_test:
     sdk: flutter

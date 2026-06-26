@@ -188,7 +188,7 @@ class _AddLibraryFormState extends State<_AddLibraryForm> {
               
               // Content Type Selection
               DropdownButtonFormField<LibraryContentType>(
-                value: _selectedType,
+                initialValue: _selectedType,
                 decoration: const InputDecoration(labelText: 'Content Type', border: OutlineInputBorder()),
                 items: LibraryContentType.values.map((type) {
                   return DropdownMenuItem(value: type, child: Text(type.name.toUpperCase()));
@@ -219,13 +219,13 @@ class _AddLibraryFormState extends State<_AddLibraryForm> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   width: double.infinity,
-                  decoration: BoxDecoration(color: Colors.grey.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+                  decoration: BoxDecoration(color: Colors.grey.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
                   child: const Text('Must specify at least one folder path to aggregate media files from.', style: TextStyle(color: Colors.grey, fontSize: 13)),
                 ),
 
               ..._paths.map((path) => Card(
                     margin: const EdgeInsets.symmetric(vertical: 4),
-                    color: Colors.grey.withOpacity(0.05),
+                    color: Colors.grey.withValues(alpha: 0.05),
                     elevation: 0,
                     child: ListTile(
                       dense: true,

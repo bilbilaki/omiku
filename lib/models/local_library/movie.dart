@@ -58,14 +58,13 @@ class Movie {
   Movie({
     this.tmdbId,
     required this.path,
-    required String parentPath,
+    required this.parentPath,
     required this.name,
     List<MovieItem>? movieItems,
     int? totalSize,
     ScanStatus? scanStatus,
     FetchedData? fetchedData,
-  }) : parentPath = parentPath,
-       movieItems = movieItems ?? const [],
+  }) : movieItems = movieItems ?? const [],
        totalSize = totalSize ?? 0,
        scanStatus = scanStatus ?? ScanStatus.pending,
        fetchedData = fetchedData ?? const FetchedData();

@@ -368,10 +368,7 @@ class _LibraryDialogState extends State<LibraryDialog> {
                                               child: Stack(
                                                 fit: StackFit.expand,
                                                 children: [
-                                                  if (coverUrl != null)
-                                                    Image.network(coverUrl, fit: BoxFit.cover)
-                                                  else
-                                                    Container(color: Colors.grey[900]),
+                                                  Image.network(coverUrl, fit: BoxFit.cover),
                                                   Positioned(
                                                     bottom: 0,
                                                     left: 0,
@@ -1123,7 +1120,7 @@ class _LibraryPageState extends State<LibraryPage> {
                                       child: Stack(
                                         fit: StackFit.expand,
                                         children: [
-                                          if (coverUrl != null) Image.network(coverUrl, fit: BoxFit.cover) else Container(color: Colors.grey[900]),
+                                          Image.network(coverUrl, fit: BoxFit.cover),
                                           Positioned(
                                             bottom: 0,
                                             left: 0,

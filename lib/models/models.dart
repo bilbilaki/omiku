@@ -2078,7 +2078,64 @@ class LibraryConfig {
 }
 
 enum LibraryContentType { movie, tvShow, manga,mixed }
+int calculateStorageId(String path) {
+  return path.hashCode;
+}
 
+@Collection()
+class LocalMovie {
+  Id id = Isar.autoIncrement;
+
+  @Index(unique: true, replace: true)
+  late String path;
+  late String parentPath;
+  late String name;
+
+  var movieItems = IsarLinks<LocalMovieItem>();
+}
+
+@Collection()
+class LocalMovieItem {
+  Id id = Isar.autoIncrement;
+
+  @Index(unique: true)
+  late String path;
+  late String name;
+  late int size;
+  late int modTime;
+}
+
+@Collection()
+class LocalTvSeries {
+  Id id = Isar.autoIncrement;
+
+  @Index(unique: true, replace: true)
+  late String path;
+  late String parentPath;
+  late String name;
+
+  var seasons = IsarLinks<LocalTvSeason>();
+}
+
+@Collection()
+class LocalTvSeason {
+  Id id = Isar.autoIncrement;
+  
+  late int seasonNumber;
+  var episodes = IsarLinks<LocalTvEpisode>();
+}
+
+@Collection()
+class LocalTvEpisode {
+  Id id = Isar.autoIncrement;
+
+  @Index(unique: true)
+  late String path;
+  late String name;
+  late int seasonNumber;
+  late int episodeNumber;
+  late int size;
+}
 @collection
 class Season {
   @Index(unique: true)
@@ -2148,4 +2205,397 @@ class AnimeItem {
       synopsis: json['synopsis'] as String?,
     );
   }
+}
+enum AnilistMediaType { ANIME, MANGA }
+
+enum AnilistMediaFormat {
+  TV, TV_SHORT, MOVIE, SPECIAL, OVA, ONA, MUSIC,
+  MANGA, NOVEL, ONE_SHOT
+}
+
+enum AnilistMediaStatus {
+  FINISHED, RELEASING, NOT_YET_RELEASED, CANCELLED, HIATUS
+}
+
+enum AnilistMediaSource {
+  ORIGINAL, MANGA, LIGHT_NOVEL, VISUAL_NOVEL, VIDEO_GAME,
+  OTHER, NOVEL, DOUJINSHI, ANIME
+}
+
+@enumerated
+enum AnilistMediaSeason { WINTER, SPRING, SUMMER, FALL }
+
+enum AnilistMediaListStatus {
+  CURRENT, PLANNING, COMPLETED, DROPPED, PAUSED, REPEATING
+}
+
+// ==========================================
+// EMBEDDED OBJECTS
+// ==========================================
+
+@embedded
+class IsarAnilistTitle {
+  String? romaji;
+  String? english;
+  String? native;
+}
+
+@embedded
+class IsarAnilistImage {
+  String? extraLarge;
+  String? large;
+  String? medium;
+  String? color;
+}
+
+@embedded
+class IsarAnilistName {
+  String? first;
+  String? last;
+  String? full;
+  String? native;
+  List<String> alternative = [];
+}
+
+@embedded
+class IsarAnilistDate {
+  int? year;
+  int? month;
+  int? day;
+}
+
+@embedded
+class IsarAnilistCoverImage {
+  String? extraLarge;
+  String? large;
+  String? medium;
+  String? color;
+}
+
+// ==========================================
+// MAIN COLLECTIONS
+// ==========================================
+
+@collection
+class IsarAnilistMedia {
+  Id id = Isar.autoIncrement;
+
+  @Index(unique: true, replace: true)
+  late int anilistId;
+
+  @Index()
+  int? idMal;
+
+  @Index(type: IndexType.value, caseSensitive: false)
+  late String titleRomaji;
+
+  IsarAnilistTitle title = IsarAnilistTitle();
+  IsarAnilistCoverImage coverImage = IsarAnilistCoverImage();
+
+  @enumerated
+  AnilistMediaType type = AnilistMediaType.ANIME;
+
+  @enumerated
+  late AnilistMediaFormat format;
+
+  @enumerated
+ late AnilistMediaStatus status;
+
+  @enumerated
+ late  AnilistMediaSource source;
+
+  @enumerated
+ late AnilistMediaSeason season;
+
+  String? description;
+  String? bannerImage;
+  String? countryOfOrigin;
+
+  int? seasonYear;
+  int? episodes;
+  int? duration;
+  int? chapters;
+  int? volumes;
+
+  int? averageScore;
+  int? meanScore;
+  int? popularity;
+  int? favourites;
+  int? trending;
+
+  bool? isAdult;
+  bool? isLicensed;
+
+  List<String> genres = [];
+  List<String> synonyms = [];
+@ignore
+  List<IsarAnilistTag> tags = [];
+
+  @Index()
+  int? updatedAt;
+
+  DateTime? lastSyncedAt;
+
+  // Relationships
+  @Backlink(to: 'media')
+  final characters = IsarLinks<IsarAnilistCharacter>();
+  @Backlink(to: 'media')
+  final staff = IsarLinks<IsarAnilistStaff>();
+
+  @Index()
+  @enumerated
+ late AnilistMediaType contentType;
+}
+
+@collection
+class IsarAnilistTag {
+  Id id = Isar.autoIncrement;
+
+  @Index(unique: true, replace: true)
+  late int anilistId;
+
+  String? name;
+  String? description;
+  String? category;
+  int? rank;
+  bool? isGeneralSpoiler;
+  bool? isMediaSpoiler;
+  bool? isAdult;
+}
+
+@collection
+class IsarAnilistCharacter {
+  Id id = Isar.autoIncrement;
+
+  @Index(unique: true, replace: true)
+  late int anilistId;
+
+  IsarAnilistName name = IsarAnilistName();
+  IsarAnilistImage image = IsarAnilistImage();
+
+  String? description;
+  String? gender;
+  String? age;
+  String? bloodType;
+  int? favourites;
+  bool? isFavourite;
+  String? siteUrl;
+
+  List<String> alternativeNames = [];
+
+  @Index()
+  int? updatedAt;
+
+  final media = IsarLinks<IsarAnilistMedia>();
+  final voiceActors = IsarLinks<IsarAnilistStaff>();
+}
+
+@collection
+class IsarAnilistStaff {
+  Id id = Isar.autoIncrement;
+
+  @Index(unique: true, replace: true)
+  late int anilistId;
+
+  IsarAnilistName name = IsarAnilistName();
+  IsarAnilistImage image = IsarAnilistImage();
+
+  String? description;
+  String? gender;
+  String? language;
+  String? languageV2;
+  String? homeTown;
+  int? age;
+  int? favourites;
+  bool? isFavourite;
+
+  List<String> primaryOccupations = [];
+
+  IsarAnilistDate? dateOfBirth;
+  IsarAnilistDate? dateOfDeath;
+
+  final media = IsarLinks<IsarAnilistMedia>();
+  final characters = IsarLinks<IsarAnilistCharacter>();
+}
+
+@collection
+class IsarAnilistUser {
+  Id id = Isar.autoIncrement;
+
+  @Index(unique: true, replace: true)
+  late int anilistId;
+
+  @Index(type: IndexType.value, caseSensitive: false)
+  late String name;
+
+  String? about;
+  String? siteUrl;
+  String? donatorBadge;
+  int? donatorTier;
+
+  IsarAnilistImage avatar = IsarAnilistImage();
+
+  int? unreadNotificationCount;
+  int? createdAt;
+  int? updatedAt;
+
+  IsarAnilistUserOptions? options;
+  IsarAnilistMediaListOptions? mediaListOptions;
+}
+
+@embedded
+class IsarAnilistUserOptions {
+  String? titleLanguage;
+  bool? displayAdultContent;
+  bool? airingNotifications;
+  String? profileColor;
+}
+
+@embedded
+class IsarAnilistMediaListOptions {
+  String? scoreFormat;
+  String? rowOrder;
+}
+
+// ==========================================
+// USER LIST / PROGRESS
+// ==========================================
+
+@collection
+class IsarAnilistMediaList {
+  Id id = Isar.autoIncrement;
+
+  @Index(unique: true, replace: true)
+  late int anilistId;
+
+  @Index()
+  late int userId;
+
+  @Index()
+  late int mediaId;
+
+  @enumerated
+  AnilistMediaListStatus status = AnilistMediaListStatus.PLANNING;
+
+  int? score; // 0-100 or 0-10 depending on format
+  int? progress;
+  int? progressVolumes;
+  int? repeat;
+
+  IsarAnilistDate? startedAt;
+  IsarAnilistDate? completedAt;
+
+  bool? private;
+  bool? hiddenFromStatusLists;
+
+  String? notes;
+  List<String> customLists = [];
+
+  int? updatedAt;
+  int? createdAt;
+
+  final user = IsarLink<IsarAnilistUser>();
+  final media = IsarLink<IsarAnilistMedia>();
+}
+
+// ==========================================
+// ADDITIONAL IMPORTANT COLLECTIONS
+// ==========================================
+
+@collection
+class IsarAnilistStudio {
+  Id id = Isar.autoIncrement;
+
+  @Index(unique: true, replace: true)
+  late int anilistId;
+
+  String? name;
+  bool? isAnimationStudio;
+  int? favourites;
+  bool? isFavourite;
+  String? siteUrl;
+}
+
+@collection
+class IsarAnilistReview {
+  Id id = Isar.autoIncrement;
+
+  @Index(unique: true, replace: true)
+  late int anilistId;
+
+  @Index()
+  int? userId;
+
+  @Index()
+  int? mediaId;
+
+  String? summary;
+  String? body;
+  int? score;
+  int? rating;
+  int? ratingAmount;
+  bool? private;
+
+  int? createdAt;
+  int? updatedAt;
+
+  final user = IsarLink<IsarAnilistUser>();
+  final media = IsarLink<IsarAnilistMedia>();
+}
+
+@collection
+class IsarAnilistRecommendation {
+  Id id = Isar.autoIncrement;
+
+  @Index(unique: true, replace: true)
+  late int anilistId;
+
+  @Index()
+  int? mediaId;
+
+  @Index()
+  int? mediaRecommendationId;
+
+  int? rating;
+  int? userId;
+
+  final user = IsarLink<IsarAnilistUser>();
+  final media = IsarLink<IsarAnilistMedia>();
+  final mediaRecommendation = IsarLink<IsarAnilistMedia>();
+}
+
+// ==========================================
+// HELPER / UTILITY COLLECTIONS
+// ==========================================
+
+@collection
+class IsarAnilistNotification {
+  Id id = Isar.autoIncrement;
+
+  @Index(unique: true, replace: true)
+  late int anilistId;
+
+  String? type;
+  String? context;
+  int? createdAt;
+
+  int? mediaId;
+  int? userId;
+  int? activityId;
+
+  final user = IsarLink<IsarAnilistUser>();
+  final media = IsarLink<IsarAnilistMedia>();
+}
+
+// ==========================================
+// EXTENSIONS (Optional but useful)
+// ==========================================
+
+extension IsarAnilistMediaX on IsarAnilistMedia {
+  String get displayTitle => 
+      title.english ?? title.romaji ?? title.native ?? 'Unknown';
+}
+
+extension IsarAnilistUserX on IsarAnilistUser {
+  String get displayName => name;
 }
