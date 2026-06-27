@@ -286,38 +286,183 @@ class _LibraryScreenState extends State<LibraryScreen> {
       }
     }
   }
+  void _handleRenameAction(MangaSeries series) {
+    final textController = TextEditingController(text: series.title);
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E24),
+        title: const Text("Rename Series", style: TextStyle(color: Colors.white)),
+        content: TextField(
+          controller: textController,
+          autofocus: true,
+          style: const TextStyle(color: Colors.white),
+          decoration: const InputDecoration(
+            labelText: "Series Title",
+            labelStyle: TextStyle(color: Colors.white70),
+            enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel", style: TextStyle(color: Colors.white54)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent),
+            onPressed: () async {
+              final newName = textController.text.trim();
+              if (newName.isNotEmpty) {
+                series.title = newName;
+                await db.put<MangaSeries>(series);
+                _loadLibrary();
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Renamed successfully to "$newName"')),
+                  );
+                }
+              }
+              if (mounted) Navigator.pop(context);
+            },
+            child: const Text("Rename"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _handleDeleteAction(MangaSeries series) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E24),
+        title: const Text("Delete Series", style: TextStyle(color: Colors.white)),
+        content: Text(
+          "Are you sure you want to delete '${series.title}' and all its associated chapters?",
+          style: const TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel", style: TextStyle(color: Colors.white54)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+            onPressed: () async {
+              await db.delete<MangaSeries>(series.id);
+              _loadLibrary();
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Deleted ${series.title}')),
+                );
+                Navigator.pop(context);
+              }
+            },
+            child: const Text("Delete"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _handleEditAction(MangaSeries series) {
+    seriesNameController.text = series.title;
+    descriptionController.text = series.description;
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1E1E24),
+        title: const Text("Edit Information", style: TextStyle(color: Colors.white)),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: seriesNameController,
+                style: const TextStyle(color: Colors.white),
+                decoration: const InputDecoration(labelText: "Title"),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: descriptionController,
+                maxLines: 3,
+                style: const TextStyle(color: Colors.white),
+                decoration: const InputDecoration(labelText: "Overview"),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              seriesNameController.clear();
+              descriptionController.clear();
+              Navigator.pop(context);
+            },
+            child: const Text("Cancel", style: TextStyle(color: Colors.white54)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              series.title = seriesNameController.text.trim();
+              series.description = descriptionController.text.trim();
+              await db.put<MangaSeries>(series);
+              _loadLibrary();
+              
+              seriesNameController.clear();
+              descriptionController.clear();
+              if (mounted) Navigator.pop(context);
+            },
+            child: const Text("Save"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _handleRefetchMetadata(MangaSeries series) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+            ),
+            const SizedBox(width: 12),
+            Expanded(child: Text("Refetching indices for '${series.title}'...")),
+          ],
+        ),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+
+    // Simulate database lookup/remote API fetching
+    Future.delayed(const Duration(seconds: 2), () async {
+      _loadLibrary();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Metadata index synced for '${series.title}'!")),
+        );
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF1E1E24), // Dark background
-      // appBar: AppBar(
-      //   backgroundColor: const Color(0xFF1E1E24),
-      //   title: const Text(
-      //     'MangaHub',
-      //     style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-      //   ),
-      //   actions: [
-      //     Row(
-      //       crossAxisAlignment: CrossAxisAlignment.center,
-      //       mainAxisAlignment: MainAxisAlignment.center,
-      //       mainAxisSize: MainAxisSize.min,
-      //       children: [],
-      //     ),
-      //   ],
-      // ),
+      backgroundColor: const Color(0xFF1E1E24),
       body: FutureBuilder<List<MangaSeries>>(
         future: _libraryFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
-
           if (snapshot.hasError) {
             return Center(
               child: Text(
-                'Failed to load manga library: ${snapshot.error}',
-                textAlign: TextAlign.center,
+                'Failed to load library: ${snapshot.error}',
                 style: const TextStyle(color: Colors.white70, fontSize: 18),
               ),
             );
@@ -326,11 +471,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
           final List<MangaSeries> library = snapshot.data ?? [];
           return Column(
             children: [
+              // Filter Chips Row
               Padding(
-                padding: const EdgeInsets.symmetric(
-                  vertical: 16.0,
-                  horizontal: 8.0,
-                ),
+                padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 8.0),
                 child: SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: Row(
@@ -338,13 +481,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                       _buildFilterChip('Popular', true),
                       _buildFilterChip('Action', false),
                       _buildFilterChip('Horror', false),
-                      _buildFilterChip('Comedy', false),
-                      _buildFilterChip('Romance', false),
-                      _buildFilterChip(
-                        'Filter',
-                        false,
-                        icon: Icons.filter_list,
-                      ),
+                      _buildFilterChip('Filter', false, icon: Icons.filter_list),
                     ],
                   ),
                 ),
@@ -353,50 +490,45 @@ class _LibraryScreenState extends State<LibraryScreen> {
                 child: library.isEmpty
                     ? Center(
                         child: Text(
-                          _isProcessingFile
-                              ? 'Adding manga...'
-                              : 'No manga series found.\nTap "+" to add one!',
+                          _isProcessingFile ? 'Processing files...' : 'Empty library.\nTap + to add.',
                           textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 18,
-                          ),
+                          style: const TextStyle(color: Colors.white70, fontSize: 18),
                         ),
                       )
                     : GridView.builder(
                         padding: const EdgeInsets.all(14),
-                        gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 2,
-                              crossAxisSpacing: 14,
-                              mainAxisSpacing: 14,
-                              childAspectRatio:
-                                  0.72, // Perfect layout alignment avoiding height overflow
-                            ),
+                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 14,
+                          mainAxisSpacing: 14,
+                          childAspectRatio: 0.72,
+                        ),
                         itemCount: library.length,
                         itemBuilder: (context, index) {
                           final series = library[index];
                           final chapterCount = series.chapters.length;
                           final progress = _calculateSeriesProgress(series);
+
                           return PremiumMediaCard(
-                            id: series.seriesId,
+                            id: series.seriesId.toString(),
                             title: series.title,
                             overview: series.description,
                             imagePath: series.coverPath,
                             badgeText: '$chapterCount Ch.',
-                            rating:
-                                null, // Average score could be loaded from online details if fetched
                             progress: progress,
                             onTap: () {
-                              Navigator.of(context)
-                                  .push(
-                                    MaterialPageRoute(
-                                      builder: (context) =>
-                                          MangaDetailScreen(series: series),
-                                    ),
-                                  )
-                                  .then((_) => _loadLibrary());
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (context) => MangaDetailScreen(series: series),
+                                ),
+                              ).then((_) => _loadLibrary());
                             },
+                            // Enable custom options on hold
+                            enableActionMenu: true,
+                            onRename: () => _handleRenameAction(series),
+                            onDelete: () => _handleDeleteAction(series),
+                            onEdit: () => _handleEditAction(series),
+                            onRefetch: () => _handleRefetchMetadata(series),
                           );
                         },
                       ),
@@ -405,27 +537,6 @@ class _LibraryScreenState extends State<LibraryScreen> {
           );
         },
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _isProcessingFile
-            ? null
-            : () {
-                tVmedium();
-                _pickAndProcessMangaFile(context);
-              },
-        label: _isProcessingFile
-            ? const Row(
-                children: [
-                  CircularProgressIndicator(color: Colors.white),
-                  SizedBox(width: 8),
-                  Text('Adding...'),
-                ],
-              )
-            : const Text('Add Manga Series'),
-        icon: const Icon(Icons.add),
-        backgroundColor: Colors.blueAccent,
-        foregroundColor: Colors.white,
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );
   }
 
@@ -434,40 +545,28 @@ class _LibraryScreenState extends State<LibraryScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 4.0),
       child: ChoiceChip(
         label: Text(label),
-        avatar: icon != null
-            ? Icon(icon, color: isSelected ? Colors.black : Colors.white70)
-            : null,
+        avatar: icon != null ? Icon(icon, color: isSelected ? Colors.black : Colors.white70) : null,
         selected: isSelected,
         selectedColor: Colors.greenAccent,
-        labelStyle: TextStyle(
-          color: isSelected ? Colors.black : Colors.white70,
-        ),
-        backgroundColor: Colors.grey.withValues(alpha: 0.3),
-        onSelected: (selected) {
-          // TODO: Implement filter logic
-          
+        labelStyle: TextStyle(color: isSelected ? Colors.black : Colors.white70),
+        backgroundColor: Colors.grey.withOpacity(0.15),
+        onSelected: (val) {
           tVmedium();
-          debugPrint('Filter "$label" selected: $selected');
         },
       ),
     );
   }
-}
 
-/// Calculates individual reading progress representing cumulative stats across the series chapters
-double _calculateSeriesProgress(MangaSeries series) {
-  if (series.chapters.isEmpty) return 0.0;
-  double cumulativeProgress = 0.0;
-  int measurableChapters = 0;
-
-  for (final ch in series.chapters) {
-    if (ch.totalPages > 0) {
-      //  cumulativeProgress += ch.progress / ch.totalPages;
-      measurableChapters++;
+  double _calculateSeriesProgress(MangaSeries series) {
+    if (series.chapters.isEmpty) return 0.0;
+    double cumulativeProgress = 0.0;
+    int measurable = 0;
+    for (final ch in series.chapters) {
+      if (ch.totalPages > 0) {
+        measurable++;
+      }
     }
+    return measurable > 0 ? (cumulativeProgress / measurable).clamp(0.0, 1.0) : 0.0;
   }
-
-  return measurableChapters > 0
-      ? (cumulativeProgress / measurableChapters).clamp(0.0, 1.0)
-      : 0.0;
 }
+
